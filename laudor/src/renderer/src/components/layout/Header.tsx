@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom'
-import { Moon, Sun, PanelLeftOpen } from 'lucide-react'
+import { Moon, Sun, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { Button } from '../ui/button'
 
@@ -25,21 +25,24 @@ function getPageTitle(pathname: string): string {
 
 interface HeaderProps {
   collapsed: boolean
-  onExpand: () => void
+  onToggle: () => void
 }
 
-export default function Header({ collapsed, onExpand }: HeaderProps): React.JSX.Element {
+export default function Header({ collapsed, onToggle }: HeaderProps): React.JSX.Element {
   const { pathname } = useLocation()
   const { theme, toggleTheme } = useTheme()
 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-background px-6">
       <div className="flex items-center gap-3">
-        {collapsed && (
-          <Button variant="ghost" size="icon" onClick={onExpand} title="Expandir menu">
-            <PanelLeftOpen size={18} />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggle}
+          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+        >
+          {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+        </Button>
         <h1 className="text-lg font-semibold">{getPageTitle(pathname)}</h1>
       </div>
       <Button variant="ghost" size="icon" onClick={toggleTheme} title="Alternar tema">

@@ -9,9 +9,9 @@ export default function AppShell(): React.JSX.Element {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
+      <Sidebar collapsed={collapsed} />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header collapsed={collapsed} onExpand={() => setCollapsed(false)} />
+        <Header collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
         <ScrollArea className="flex-1">
           <main className="p-6">
             <Outlet />

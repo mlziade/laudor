@@ -8,7 +8,6 @@ import {
   Building2,
   Users,
   LogOut,
-  PanelLeftClose
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -34,10 +33,9 @@ const navItems: NavItem[] = [
 
 interface SidebarProps {
   collapsed: boolean
-  onToggle: () => void
 }
 
-export default function Sidebar({ collapsed, onToggle }: SidebarProps): React.JSX.Element {
+export default function Sidebar({ collapsed }: SidebarProps): React.JSX.Element {
   const { user, logout } = useAuth()
   const { theme } = useTheme()
   const [picture, setPicture] = useState<string | null>(null)
@@ -61,34 +59,14 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps): React.JS
         collapsed ? 'w-14' : 'w-56'
       )}
     >
-      {/* Brand / toggle */}
-      <div className="flex h-16 shrink-0 items-center justify-between px-3">
-        {!collapsed && (
-          <span
-            className="font-brand text-3xl leading-none"
-            style={{ color: brandColor }}
-          >
-            laudor
-          </span>
-        )}
-        {collapsed && (
-          <span
-            className="font-brand text-2xl leading-none mx-auto"
-            style={{ color: brandColor }}
-          >
-            L
-          </span>
-        )}
-        <button
-          onClick={onToggle}
-          className={cn(
-            'rounded-md p-1 text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0',
-            collapsed && 'hidden'
-          )}
-          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+      {/* Brand */}
+      <div className="flex h-16 shrink-0 items-center justify-center px-3">
+        <span
+          className="font-brand leading-none"
+          style={{ color: brandColor, fontSize: collapsed ? '1.5rem' : '1.875rem' }}
         >
-          <PanelLeftClose size={16} />
-        </button>
+          {collapsed ? 'L' : 'laudor'}
+        </span>
       </div>
 
       <nav className="flex-1 space-y-1 px-2 py-2">
