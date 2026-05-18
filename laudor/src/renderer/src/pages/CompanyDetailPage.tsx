@@ -6,31 +6,48 @@ import { z } from 'zod'
 import { ArrowLeft } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { companiesApi } from '../lib/api'
+import { maskCNPJ, maskCEP, maskPhone } from '../lib/masks'
+import { validateCNPJ, validatePhone } from '../lib/validators'
 import type { CreateCompanyInput } from '../types'
+import { ESTADOS_BR } from '../data/estados'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import { MaskedInput } from '../components/ui/masked-input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Separator } from '../components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../components/ui/select'
 
 const schema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   description: z.string().optional(),
   razaoSocial: z.string().optional(),
   nomeFantasia: z.string().optional(),
-  cnpj: z.string().optional(),
+  cnpj: z
+    .string()
+    .optional()
+    .refine((v) => !v || validateCNPJ(v), 'CNPJ inválido'),
   inscricaoEstadual: z.string().optional(),
   inscricaoMunicipal: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
-  telefone: z.string().optional(),
+  telefone: z
+    .string()
+    .optional()
+    .refine((v) => !v || validatePhone(v), 'Telefone inválido'),
   cep: z.string().optional(),
   logradouro: z.string().optional(),
   numero: z.string().optional(),
   complemento: z.string().optional(),
   bairro: z.string().optional(),
   cidade: z.string().optional(),
-  estado: z.string().max(2).optional(),
+  estado: z.string().optional(),
   representante: z.string().optional()
 })
 
@@ -44,18 +61,30 @@ export default function CompanyDetailPage(): React.JSX.Element {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [cnpjMasked, setCnpjMasked] = useState('')
+  const [phoneMasked, setPhoneMasked] = useState('')
+  const [cepMasked, setCepMasked] = useState('')
+
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors }
   } = useForm<FormData>({ resolver: zodResolver(schema) })
+
+  const estadoValue = watch('estado')
 
   useEffect(() => {
     if (isNew || !user || !id) return
     companiesApi.list(user.id).then((companies) => {
       const company = companies.find((c) => c.id === id)
-      if (company) reset(company as FormData)
+      if (!company) return
+      reset(company as FormData)
+      setCnpjMasked(maskCNPJ(company.cnpj ?? ''))
+      setPhoneMasked(maskPhone(company.telefone ?? ''))
+      setCepMasked(maskCEP(company.cep ?? ''))
     })
   }, [id, isNew, user, reset])
 
@@ -116,7 +145,20 @@ export default function CompanyDetailPage(): React.JSX.Element {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cnpj">CNPJ</Label>
-                <Input id="cnpj" {...register('cnpj')} placeholder="00.000.000/0000-00" />
+                <MaskedInput
+                  id="cnpj"
+                  mask={maskCNPJ}
+                  value={cnpjMasked}
+                  placeholder="00.000.000/0000-00"
+                  rawValue={(masked) => masked.replace(/[.\-\/]/g, '')}
+                  onChange={(masked, raw) => {
+                    setCnpjMasked(masked)
+                    setValue('cnpj', raw, { shouldValidate: true })
+                  }}
+                />
+                {errors.cnpj && (
+                  <p className="text-xs text-destructive">{errors.cnpj.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="inscricaoEstadual">Inscrição Estadual</Label>
@@ -135,7 +177,19 @@ export default function CompanyDetailPage(): React.JSX.Element {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="telefone">Telefone</Label>
-                <Input id="telefone" {...register('telefone')} />
+                <MaskedInput
+                  id="telefone"
+                  mask={maskPhone}
+                  value={phoneMasked}
+                  placeholder="(00) 00000-0000"
+                  onChange={(masked, raw) => {
+                    setPhoneMasked(masked)
+                    setValue('telefone', raw, { shouldValidate: true })
+                  }}
+                />
+                {errors.telefone && (
+                  <p className="text-xs text-destructive">{errors.telefone.message}</p>
+                )}
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="representante">Representante Legal</Label>
@@ -149,7 +203,16 @@ export default function CompanyDetailPage(): React.JSX.Element {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="cep">CEP</Label>
-                <Input id="cep" {...register('cep')} />
+                <MaskedInput
+                  id="cep"
+                  mask={maskCEP}
+                  value={cepMasked}
+                  placeholder="00000-000"
+                  onChange={(masked, raw) => {
+                    setCepMasked(masked)
+                    setValue('cep', raw, { shouldValidate: true })
+                  }}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="logradouro">Logradouro</Label>
@@ -172,8 +235,19 @@ export default function CompanyDetailPage(): React.JSX.Element {
                 <Input id="cidade" {...register('cidade')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="estado">UF</Label>
-                <Input id="estado" {...register('estado')} maxLength={2} placeholder="SP" />
+                <Label>UF</Label>
+                <Select value={estadoValue ?? ''} onValueChange={(v) => setValue('estado', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ESTADOS_BR.map((e) => (
+                      <SelectItem key={e.sigla} value={e.sigla}>
+                        {e.sigla} — {e.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
