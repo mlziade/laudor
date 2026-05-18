@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import { ScrollArea } from '../ui/scroll-area'
 
 export default function AppShell(): React.JSX.Element {
   const [collapsed, setCollapsed] = useState(false)
@@ -11,9 +12,11 @@ export default function AppShell(): React.JSX.Element {
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header collapsed={collapsed} onExpand={() => setCollapsed(false)} />
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
-        </main>
+        <ScrollArea className="flex-1">
+          <main className="p-6">
+            <Outlet />
+          </main>
+        </ScrollArea>
       </div>
     </div>
   )
