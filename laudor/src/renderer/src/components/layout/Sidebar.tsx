@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, FileText, FolderOpen, User, Building2, Users, LogOut } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { perfisApi } from '../../lib/api'
+import { Avatar } from '../ui/avatar'
 import { cn } from '../../lib/utils'
 
 interface NavItem {
@@ -21,13 +24,23 @@ const navItems: NavItem[] = [
 
 export default function Sidebar(): React.JSX.Element {
   const { user, logout } = useAuth()
+  const [picture, setPicture] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!user) return
+    perfisApi.list(user.id).then((perfis) => {
+      const withPic = perfis.find((p) => p.picture)
+      setPicture(withPic?.picture ?? null)
+    })
+  }, [user])
 
   const visibleItems = navItems.filter((item) => !item.adminOnly || user?.isAdmin)
+  const emailInitials = user?.email?.slice(0, 2) ?? '?'
 
   return (
     <aside className="flex h-full w-56 flex-col border-r bg-sidebar">
       <div className="flex h-16 items-center px-6">
-        <span className="text-xl font-bold text-sidebar-primary">Laudor</span>
+        <span className="font-brand text-xl font-bold text-sidebar-primary">Laudor</span>
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-2">
@@ -52,7 +65,10 @@ export default function Sidebar(): React.JSX.Element {
       </nav>
 
       <div className="border-t p-3">
-        <div className="mb-1 px-3 py-1 text-xs text-muted-foreground truncate">{user?.email}</div>
+        <div className="mb-1 flex items-center gap-2 px-2 py-1">
+          <Avatar src={picture} fallback={emailInitials} size="sm" />
+          <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
+        </div>
         <button
           onClick={logout}
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
