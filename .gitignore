@@ -1,0 +1,33 @@
+# Dependencies
+laudor/node_modules/
+
+# Build output
+laudor/out/
+laudor/dist/
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Prisma dev database
+*.db
+*.db-journal
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

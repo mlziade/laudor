@@ -32,7 +32,8 @@
       "Bash(cat *)",
       "WebFetch(domain:stitch.withgoogle.com)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npm create *)"
     ],
     "deny": [
       "Read(.env*)",
