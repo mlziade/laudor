@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthContext } from './hooks/useAuth'
+import { ThemeProvider } from './contexts/ThemeContext'
 import type { UserDTO } from './types'
 import AuthPage from './pages/AuthPage'
 import AppShell from './components/layout/AppShell'
@@ -25,6 +26,7 @@ export default function App(): React.JSX.Element {
   }
 
   return (
+    <ThemeProvider>
     <AuthContext.Provider value={{ user, setUser, logout }}>
       <HashRouter>
         <Routes>
@@ -50,5 +52,6 @@ export default function App(): React.JSX.Element {
         </Routes>
       </HashRouter>
     </AuthContext.Provider>
+    </ThemeProvider>
   )
 }

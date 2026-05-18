@@ -1,4 +1,7 @@
 import { useLocation } from 'react-router-dom'
+import { Moon, Sun } from 'lucide-react'
+import { useTheme } from '../../contexts/ThemeContext'
+import { Button } from '../ui/button'
 
 const routeLabels: Record<string, string> = {
   '/console': 'Dashboard',
@@ -22,10 +25,14 @@ function getPageTitle(pathname: string): string {
 
 export default function Header(): React.JSX.Element {
   const { pathname } = useLocation()
+  const { theme, toggleTheme } = useTheme()
 
   return (
-    <header className="flex h-16 items-center border-b bg-background px-6">
+    <header className="flex h-16 items-center justify-between border-b bg-background px-6">
       <h1 className="text-lg font-semibold">{getPageTitle(pathname)}</h1>
+      <Button variant="ghost" size="icon" onClick={toggleTheme} title="Alternar tema">
+        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+      </Button>
     </header>
   )
 }
