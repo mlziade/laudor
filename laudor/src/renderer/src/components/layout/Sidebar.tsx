@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, FileText, FolderOpen, User, Building2, Users, LogOut } from 'lucide-react'
+import {
+  LayoutDashboard,
+  FileText,
+  FolderOpen,
+  User,
+  Building2,
+  Users,
+  LogOut,
+  PanelLeftClose
+} from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useTheme } from '../../contexts/ThemeContext'
 import { perfisApi } from '../../lib/api'
@@ -23,7 +32,12 @@ const navItems: NavItem[] = [
   { label: 'Usuários', to: '/console/admin/users', icon: <Users size={18} />, adminOnly: true }
 ]
 
-export default function Sidebar(): React.JSX.Element {
+interface SidebarProps {
+  collapsed: boolean
+  onToggle: () => void
+}
+
+export default function Sidebar({ collapsed, onToggle }: SidebarProps): React.JSX.Element {
   const { user, logout } = useAuth()
   const { theme } = useTheme()
   const [picture, setPicture] = useState<string | null>(null)
@@ -38,27 +52,56 @@ export default function Sidebar(): React.JSX.Element {
 
   const visibleItems = navItems.filter((item) => !item.adminOnly || user?.isAdmin)
   const emailInitials = user?.email?.slice(0, 2) ?? '?'
+  const brandColor = theme === 'dark' ? '#ffffff' : '#000000'
 
   return (
-    <aside className="flex h-full w-56 flex-col border-r bg-sidebar">
-      <div className="flex h-16 items-center justify-center">
-        <span
-          className="font-brand text-3xl leading-none"
-          style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
+    <aside
+      className={cn(
+        'flex h-full flex-col border-r bg-sidebar overflow-hidden transition-[width] duration-200 ease-in-out',
+        collapsed ? 'w-14' : 'w-56'
+      )}
+    >
+      {/* Brand / toggle */}
+      <div className="flex h-16 shrink-0 items-center justify-between px-3">
+        {!collapsed && (
+          <span
+            className="font-brand text-3xl leading-none"
+            style={{ color: brandColor }}
+          >
+            laudor
+          </span>
+        )}
+        {collapsed && (
+          <span
+            className="font-brand text-2xl leading-none mx-auto"
+            style={{ color: brandColor }}
+          >
+            L
+          </span>
+        )}
+        <button
+          onClick={onToggle}
+          className={cn(
+            'rounded-md p-1 text-sidebar-foreground hover:bg-sidebar-accent transition-colors shrink-0',
+            collapsed && 'hidden'
+          )}
+          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
         >
-          laudor
-        </span>
+          <PanelLeftClose size={16} />
+        </button>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-2">
+      <nav className="flex-1 space-y-1 px-2 py-2">
         {visibleItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.to === '/console'}
+            title={collapsed ? item.label : undefined}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors',
+                collapsed ? 'justify-center' : 'gap-3 px-3',
                 isActive
                   ? 'bg-sidebar-primary text-sidebar-primary-foreground'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
@@ -66,22 +109,33 @@ export default function Sidebar(): React.JSX.Element {
             }
           >
             {item.icon}
-            {item.label}
+            {!collapsed && item.label}
           </NavLink>
         ))}
       </nav>
 
-      <div className="border-t p-3">
-        <div className="mb-1 flex items-center gap-2 px-2 py-1">
-          <Avatar src={picture} fallback={emailInitials} size="sm" />
-          <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
-        </div>
+      <div className="border-t p-2">
+        {!collapsed && (
+          <div className="mb-1 flex items-center gap-2 px-2 py-1">
+            <Avatar src={picture} fallback={emailInitials} size="sm" />
+            <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
+          </div>
+        )}
+        {collapsed && (
+          <div className="mb-1 flex justify-center py-1">
+            <Avatar src={picture} fallback={emailInitials} size="sm" />
+          </div>
+        )}
         <button
           onClick={logout}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          title={collapsed ? 'Sair' : undefined}
+          className={cn(
+            'flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors',
+            collapsed ? 'justify-center' : 'gap-3 px-3'
+          )}
         >
           <LogOut size={18} />
-          Sair
+          {!collapsed && 'Sair'}
         </button>
       </div>
     </aside>
