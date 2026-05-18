@@ -2,8 +2,22 @@
 @import "@fontsource/roboto/400.css";
 @import "@fontsource/roboto/500.css";
 @import "@fontsource/roboto/700.css";
-@import "@fontsource/noto-serif/400.css";
-@import "@fontsource/noto-serif/700.css";
+
+@font-face {
+  font-family: 'SitkaSmall';
+  src: url('./fonts/sitka-small-599.ttf') format('truetype');
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'SitkaSmall';
+  src: url('./fonts/sitka-small-652.ttf') format('truetype');
+  font-weight: 600;
+}
+@font-face {
+  font-family: 'SitkaSmall';
+  src: url('./fonts/sitka-small-815.ttf') format('truetype');
+  font-weight: 800;
+}
 
 @theme {
   --color-background: hsl(var(--background));
@@ -113,5 +127,5 @@
 }
 
 .font-brand {
-  font-family: 'Noto Serif', serif;
+  font-family: 'SitkaSmall', serif;
 }

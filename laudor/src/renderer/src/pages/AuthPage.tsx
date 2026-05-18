@@ -7,8 +7,6 @@ import { authApi } from '../lib/api'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../contexts/ThemeContext'
 import { Button } from '../components/ui/button'
-import nameBlack from '../assets/name-black.png'
-import nameWhite from '../assets/name-white.png'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -83,11 +81,12 @@ export default function AuthPage(): React.JSX.Element {
     <div className="flex min-h-screen items-center justify-center bg-secondary/30">
       <div className="w-full max-w-md space-y-6 px-4">
         <div className="text-center">
-          <img
-            src={theme === 'dark' ? nameWhite : nameBlack}
-            alt="Laudor"
-            className="mx-auto h-14 w-auto object-contain"
-          />
+          <p
+            className="font-brand text-5xl font-semibold tracking-wide"
+            style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
+          >
+            laudor
+          </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Gerador de laudos e documentos
           </p>

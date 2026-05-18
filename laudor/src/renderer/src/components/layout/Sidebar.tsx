@@ -6,8 +6,6 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { perfisApi } from '../../lib/api'
 import { Avatar } from '../ui/avatar'
 import { cn } from '../../lib/utils'
-import nameBlack from '../../assets/name-black.png'
-import nameWhite from '../../assets/name-white.png'
 
 interface NavItem {
   label: string
@@ -44,11 +42,12 @@ export default function Sidebar(): React.JSX.Element {
   return (
     <aside className="flex h-full w-56 flex-col border-r bg-sidebar">
       <div className="flex h-16 items-center px-6">
-        <img
-          src={theme === 'dark' ? nameWhite : nameBlack}
-          alt="Laudor"
-          className="h-7 w-auto object-contain"
-        />
+        <span
+          className="font-brand text-2xl font-semibold tracking-wide"
+          style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
+        >
+          laudor
+        </span>
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-2">
