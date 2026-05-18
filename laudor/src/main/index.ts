@@ -4,6 +4,16 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase } from './db-init'
 import { registerAllHandlers } from './ipc'
 
+function resolveIcon(): string {
+  // In dev __dirname is out/main/; in production it's in app.asar/out/main/
+  // Resources folder sits two levels up from out/main/
+  const ext = process.platform === 'win32' ? 'icon.ico' : 'icon.png'
+  if (is.dev) {
+    return join(__dirname, `../../resources/${ext}`)
+  }
+  return join(process.resourcesPath, ext)
+}
+
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -12,6 +22,7 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
+    icon: resolveIcon(),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false

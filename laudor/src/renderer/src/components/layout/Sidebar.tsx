@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, FileText, FolderOpen, User, Building2, Users, LogOut } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { useTheme } from '../../contexts/ThemeContext'
 import { perfisApi } from '../../lib/api'
 import { Avatar } from '../ui/avatar'
 import { cn } from '../../lib/utils'
+import nameBlack from '../../assets/name-black.png'
+import nameWhite from '../../assets/name-white.png'
 
 interface NavItem {
   label: string
@@ -24,6 +27,7 @@ const navItems: NavItem[] = [
 
 export default function Sidebar(): React.JSX.Element {
   const { user, logout } = useAuth()
+  const { theme } = useTheme()
   const [picture, setPicture] = useState<string | null>(null)
 
   useEffect(() => {
@@ -40,7 +44,11 @@ export default function Sidebar(): React.JSX.Element {
   return (
     <aside className="flex h-full w-56 flex-col border-r bg-sidebar">
       <div className="flex h-16 items-center px-6">
-        <span className="font-brand text-xl font-bold text-sidebar-primary">Laudor</span>
+        <img
+          src={theme === 'dark' ? nameWhite : nameBlack}
+          alt="Laudor"
+          className="h-7 w-auto object-contain"
+        />
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-2">

@@ -5,7 +5,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { authApi } from '../lib/api'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../contexts/ThemeContext'
 import { Button } from '../components/ui/button'
+import nameBlack from '../assets/name-black.png'
+import nameWhite from '../assets/name-white.png'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -24,6 +27,7 @@ export default function AuthPage(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const { setUser } = useAuth()
+  const { theme } = useTheme()
   const navigate = useNavigate()
 
   const {
@@ -79,7 +83,11 @@ export default function AuthPage(): React.JSX.Element {
     <div className="flex min-h-screen items-center justify-center bg-secondary/30">
       <div className="w-full max-w-md space-y-6 px-4">
         <div className="text-center">
-          <h1 className="font-brand text-4xl font-bold tracking-tight text-primary">Laudor</h1>
+          <img
+            src={theme === 'dark' ? nameWhite : nameBlack}
+            alt="Laudor"
+            className="mx-auto h-14 w-auto object-contain"
+          />
           <p className="mt-2 text-sm text-muted-foreground">
             Gerador de laudos e documentos
           </p>
