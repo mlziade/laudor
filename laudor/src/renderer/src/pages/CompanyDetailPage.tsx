@@ -108,7 +108,7 @@ export default function CompanyDetailPage(): React.JSX.Element {
   }
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => navigate('/console/companies')}>
         <ArrowLeft size={16} />
         Voltar
@@ -119,23 +119,29 @@ export default function CompanyDetailPage(): React.JSX.Element {
           <CardTitle>{isNew ? 'Nova Empresa' : 'Editar Empresa'}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome de exibição *</Label>
-              <Input id="name" {...register('name')} placeholder="Ex: Empresa Principal" />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea id="description" {...register('description')} rows={2} />
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Display name + description */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="name">Nome de exibição *</Label>
+                <Input id="name" {...register('name')} placeholder="Ex: Empresa Principal" />
+                {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+              </div>
+              <div className="space-y-2 row-span-2">
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea id="description" {...register('description')} rows={4} />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="representante">Representante Legal</Label>
+                <Input id="representante" {...register('representante')} />
+              </div>
             </div>
 
             <Separator />
             <p className="text-sm font-medium text-muted-foreground">Dados da Empresa</p>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2 col-span-2">
                 <Label htmlFor="razaoSocial">Razão Social</Label>
                 <Input id="razaoSocial" {...register('razaoSocial')} />
               </div>
@@ -191,16 +197,12 @@ export default function CompanyDetailPage(): React.JSX.Element {
                   <p className="text-xs text-destructive">{errors.telefone.message}</p>
                 )}
               </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="representante">Representante Legal</Label>
-                <Input id="representante" {...register('representante')} />
-              </div>
             </div>
 
             <Separator />
             <p className="text-sm font-medium text-muted-foreground">Endereço</p>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cep">CEP</Label>
                 <MaskedInput
@@ -214,7 +216,7 @@ export default function CompanyDetailPage(): React.JSX.Element {
                   }}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-2">
                 <Label htmlFor="logradouro">Logradouro</Label>
                 <Input id="logradouro" {...register('logradouro')} />
               </div>
@@ -230,7 +232,7 @@ export default function CompanyDetailPage(): React.JSX.Element {
                 <Label htmlFor="bairro">Bairro</Label>
                 <Input id="bairro" {...register('bairro')} />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-2">
                 <Label htmlFor="cidade">Cidade</Label>
                 <Input id="cidade" {...register('cidade')} />
               </div>

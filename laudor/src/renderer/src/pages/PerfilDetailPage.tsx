@@ -80,7 +80,6 @@ export default function PerfilDetailPage(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [picture, setPicture] = useState<string | null>(null)
 
-  // masked field state (controlled outside react-hook-form)
   const [cpfMasked, setCpfMasked] = useState('')
   const [phoneMasked, setPhoneMasked] = useState('')
   const [cepMasked, setCepMasked] = useState('')
@@ -144,7 +143,7 @@ export default function PerfilDetailPage(): React.JSX.Element {
   }
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => navigate('/console/perfis')}>
         <ArrowLeft size={16} />
         Voltar
@@ -155,13 +154,11 @@ export default function PerfilDetailPage(): React.JSX.Element {
           <CardTitle>{isNew ? 'Novo Perfil' : 'Editar Perfil'}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Picture */}
-            <div className="flex items-center gap-4">
-              <Avatar src={picture} fallback={watch('name') || '?'} size="lg" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Foto do perfil</p>
-                <p className="text-xs text-muted-foreground">JPG, PNG ou WEBP. Máx 512×512px.</p>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Picture + identity */}
+            <div className="flex items-start gap-6">
+              <div className="flex flex-col items-center gap-2">
+                <Avatar src={picture} fallback={watch('name') || '?'} size="lg" />
                 <Button
                   type="button"
                   size="sm"
@@ -169,14 +166,14 @@ export default function PerfilDetailPage(): React.JSX.Element {
                   onClick={() => fileRef.current?.click()}
                 >
                   <Camera size={14} />
-                  {picture ? 'Alterar foto' : 'Adicionar foto'}
+                  {picture ? 'Alterar' : 'Adicionar'}
                 </Button>
                 {picture && (
                   <Button
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className="text-destructive hover:text-destructive ml-1"
+                    className="text-destructive hover:text-destructive"
                     onClick={() => setPicture(null)}
                   >
                     Remover
@@ -190,36 +187,28 @@ export default function PerfilDetailPage(): React.JSX.Element {
                   onChange={handlePictureChange}
                 />
               </div>
-            </div>
 
-            <Separator />
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome do perfil *</Label>
-              <Input id="name" {...register('name')} placeholder="Ex: Meu perfil principal" />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea id="description" {...register('description')} rows={2} />
+              <div className="flex-1 grid grid-cols-3 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="name">Nome do perfil *</Label>
+                  <Input id="name" {...register('name')} placeholder="Ex: Meu perfil principal" />
+                  {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+                </div>
+                <div className="space-y-2 row-span-2">
+                  <Label htmlFor="description">Descrição</Label>
+                  <Textarea id="description" {...register('description')} rows={4} />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="fullName">Nome completo</Label>
+                  <Input id="fullName" {...register('fullName')} />
+                </div>
+              </div>
             </div>
 
             <Separator />
             <p className="text-sm font-medium text-muted-foreground">Dados Pessoais</p>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nome completo</Label>
-                <Input id="fullName" {...register('fullName')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...register('email')} />
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email.message}</p>
-                )}
-              </div>
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cpf">CPF</Label>
                 <MaskedInput
@@ -254,12 +243,19 @@ export default function PerfilDetailPage(): React.JSX.Element {
                   <p className="text-xs text-destructive">{errors.phone.message}</p>
                 )}
               </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" {...register('email')} />
+                {errors.email && (
+                  <p className="text-xs text-destructive">{errors.email.message}</p>
+                )}
+              </div>
             </div>
 
             <Separator />
             <p className="text-sm font-medium text-muted-foreground">Endereço</p>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cep">CEP</Label>
                 <MaskedInput
@@ -273,7 +269,7 @@ export default function PerfilDetailPage(): React.JSX.Element {
                   }}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-2">
                 <Label htmlFor="logradouro">Logradouro</Label>
                 <Input id="logradouro" {...register('logradouro')} />
               </div>
@@ -289,7 +285,7 @@ export default function PerfilDetailPage(): React.JSX.Element {
                 <Label htmlFor="bairro">Bairro</Label>
                 <Input id="bairro" {...register('bairro')} />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-2">
                 <Label htmlFor="cidade">Cidade</Label>
                 <Input id="cidade" {...register('cidade')} />
               </div>
