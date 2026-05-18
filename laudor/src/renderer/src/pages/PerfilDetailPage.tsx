@@ -1,69 +1,134 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Camera } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { perfisApi } from '../lib/api'
+import { maskCPF, maskCEP, maskPhone } from '../lib/masks'
+import { validateCPF, validatePhone } from '../lib/validators'
 import type { CreatePerfilInput } from '../types'
+import { ESTADOS_BR } from '../data/estados'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import { MaskedInput } from '../components/ui/masked-input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Separator } from '../components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../components/ui/select'
+import { Avatar } from '../components/ui/avatar'
 
 const schema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   description: z.string().optional(),
   fullName: z.string().optional(),
-  cpf: z.string().optional(),
+  cpf: z
+    .string()
+    .optional()
+    .refine((v) => !v || validateCPF(v), 'CPF inválido'),
   rg: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .optional()
+    .refine((v) => !v || validatePhone(v), 'Telefone inválido'),
   cep: z.string().optional(),
   logradouro: z.string().optional(),
   numero: z.string().optional(),
   complemento: z.string().optional(),
   bairro: z.string().optional(),
   cidade: z.string().optional(),
-  estado: z.string().max(2, 'UF deve ter 2 caracteres').optional()
+  estado: z.string().optional()
 })
 
 type FormData = z.infer<typeof schema>
+
+async function resizeToBase64(file: File, maxSize = 512): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
+      canvas.width = img.width * scale
+      canvas.height = img.height * scale
+      canvas.getContext('2d')?.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      resolve(canvas.toDataURL('image/jpeg', 0.85))
+    }
+    img.onerror = reject
+    img.src = url
+  })
+}
 
 export default function PerfilDetailPage(): React.JSX.Element {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const isNew = id === 'new'
+  const fileRef = useRef<HTMLInputElement>(null)
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [picture, setPicture] = useState<string | null>(null)
+
+  // masked field state (controlled outside react-hook-form)
+  const [cpfMasked, setCpfMasked] = useState('')
+  const [phoneMasked, setPhoneMasked] = useState('')
+  const [cepMasked, setCepMasked] = useState('')
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors }
   } = useForm<FormData>({ resolver: zodResolver(schema) })
+
+  const estadoValue = watch('estado')
 
   useEffect(() => {
     if (isNew || !user || !id) return
     perfisApi.list(user.id).then((perfis) => {
       const perfil = perfis.find((p) => p.id === id)
-      if (perfil) reset(perfil as FormData)
+      if (!perfil) return
+      reset(perfil as FormData)
+      setPicture(perfil.picture ?? null)
+      setCpfMasked(maskCPF(perfil.cpf ?? ''))
+      setPhoneMasked(maskPhone(perfil.phone ?? ''))
+      setCepMasked(maskCEP(perfil.cep ?? ''))
     })
   }, [id, isNew, user, reset])
+
+  async function handlePictureChange(e: React.ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const b64 = await resizeToBase64(file)
+      setPicture(b64)
+    } catch {
+      setError('Não foi possível processar a imagem.')
+    }
+  }
 
   async function onSubmit(data: FormData): Promise<void> {
     if (!user) return
     setError(null)
     setLoading(true)
     try {
-      const payload: CreatePerfilInput = {
+      const payload: CreatePerfilInput & { picture?: string } = {
         ...data,
-        email: data.email || undefined
+        email: data.email || undefined,
+        picture: picture ?? undefined
       }
       if (isNew) {
         await perfisApi.create(user.id, payload)
@@ -91,6 +156,44 @@ export default function PerfilDetailPage(): React.JSX.Element {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Picture */}
+            <div className="flex items-center gap-4">
+              <Avatar src={picture} fallback={watch('name') || '?'} size="lg" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Foto do perfil</p>
+                <p className="text-xs text-muted-foreground">JPG, PNG ou WEBP. Máx 512×512px.</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <Camera size={14} />
+                  {picture ? 'Alterar foto' : 'Adicionar foto'}
+                </Button>
+                {picture && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive ml-1"
+                    onClick={() => setPicture(null)}
+                  >
+                    Remover
+                  </Button>
+                )}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePictureChange}
+                />
+              </div>
+            </div>
+
+            <Separator />
+
             <div className="space-y-2">
               <Label htmlFor="name">Nome do perfil *</Label>
               <Input id="name" {...register('name')} placeholder="Ex: Meu perfil principal" />
@@ -119,7 +222,17 @@ export default function PerfilDetailPage(): React.JSX.Element {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cpf">CPF</Label>
-                <Input id="cpf" {...register('cpf')} placeholder="000.000.000-00" />
+                <MaskedInput
+                  id="cpf"
+                  mask={maskCPF}
+                  value={cpfMasked}
+                  placeholder="000.000.000-00"
+                  onChange={(masked, raw) => {
+                    setCpfMasked(masked)
+                    setValue('cpf', raw, { shouldValidate: true })
+                  }}
+                />
+                {errors.cpf && <p className="text-xs text-destructive">{errors.cpf.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rg">RG</Label>
@@ -127,7 +240,19 @@ export default function PerfilDetailPage(): React.JSX.Element {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone</Label>
-                <Input id="phone" {...register('phone')} placeholder="(00) 00000-0000" />
+                <MaskedInput
+                  id="phone"
+                  mask={maskPhone}
+                  value={phoneMasked}
+                  placeholder="(00) 00000-0000"
+                  onChange={(masked, raw) => {
+                    setPhoneMasked(masked)
+                    setValue('phone', raw, { shouldValidate: true })
+                  }}
+                />
+                {errors.phone && (
+                  <p className="text-xs text-destructive">{errors.phone.message}</p>
+                )}
               </div>
             </div>
 
@@ -137,7 +262,16 @@ export default function PerfilDetailPage(): React.JSX.Element {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="cep">CEP</Label>
-                <Input id="cep" {...register('cep')} placeholder="00000-000" />
+                <MaskedInput
+                  id="cep"
+                  mask={maskCEP}
+                  value={cepMasked}
+                  placeholder="00000-000"
+                  onChange={(masked, raw) => {
+                    setCepMasked(masked)
+                    setValue('cep', raw, { shouldValidate: true })
+                  }}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="logradouro">Logradouro</Label>
@@ -160,11 +294,19 @@ export default function PerfilDetailPage(): React.JSX.Element {
                 <Input id="cidade" {...register('cidade')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="estado">UF</Label>
-                <Input id="estado" {...register('estado')} maxLength={2} placeholder="SP" />
-                {errors.estado && (
-                  <p className="text-xs text-destructive">{errors.estado.message}</p>
-                )}
+                <Label>UF</Label>
+                <Select value={estadoValue ?? ''} onValueChange={(v) => setValue('estado', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ESTADOS_BR.map((e) => (
+                      <SelectItem key={e.sigla} value={e.sigla}>
+                        {e.sigla} — {e.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -174,11 +316,7 @@ export default function PerfilDetailPage(): React.JSX.Element {
               <Button type="submit" disabled={loading}>
                 {loading ? 'Salvando...' : 'Salvar'}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate('/console/perfis')}
-              >
+              <Button type="button" variant="outline" onClick={() => navigate('/console/perfis')}>
                 Cancelar
               </Button>
             </div>

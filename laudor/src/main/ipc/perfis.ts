@@ -20,6 +20,7 @@ interface PerfilInput {
   bairro?: string
   cidade?: string
   estado?: string
+  picture?: string
 }
 
 function toDTO(p: PerfilRecord): object {

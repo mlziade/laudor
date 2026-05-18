@@ -61,6 +61,7 @@ export interface PerfilDTO {
   bairro?: string | null
   cidade?: string | null
   estado?: string | null
+  picture?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -139,6 +140,7 @@ export interface CreatePerfilInput {
   bairro?: string
   cidade?: string
   estado?: string
+  picture?: string
 }
 
 export interface CreateCompanyInput {
