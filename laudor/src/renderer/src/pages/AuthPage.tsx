@@ -82,7 +82,7 @@ export default function AuthPage(): React.JSX.Element {
       <div className="w-full max-w-md space-y-6 px-4">
         <div className="text-center">
           <p
-            className="font-brand text-5xl font-semibold tracking-wide"
+            className="font-brand text-7xl"
             style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
           >
             laudor
