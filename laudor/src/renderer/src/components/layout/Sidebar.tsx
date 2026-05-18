@@ -43,7 +43,7 @@ export default function Sidebar(): React.JSX.Element {
     <aside className="flex h-full w-56 flex-col border-r bg-sidebar">
       <div className="flex h-16 items-center justify-center">
         <span
-          className="font-brand text-4xl"
+          className="font-brand text-3xl"
           style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
         >
           laudor
