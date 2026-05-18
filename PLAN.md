@@ -123,8 +123,11 @@ laudor/
             └── pages/
                 ├── AuthPage.tsx           # Welcome + login/register
                 ├── ConsolePage.tsx        # /console dashboard
-                ├── TemplatesPage.tsx      # /console/templates
-                ├── TemplateFillPage.tsx   # /console/templates/:id (split view)
+                ├── templates/
+                │   ├── TemplatesPage.tsx      # /console/templates (own templates)
+                │   ├── TemplateNewPage.tsx     # /console/templates/new
+                │   ├── TemplateEditPage.tsx    # /console/templates/:id/edit
+                │   └── TemplateFillPage.tsx    # /console/templates/:id (split view)
                 ├── ProjectsPage.tsx       # /console/projects
                 ├── ProjectDetailPage.tsx  # /console/projects/:id
                 ├── PerfisPage.tsx         # /console/perfis
@@ -132,10 +135,7 @@ laudor/
                 ├── CompaniesPage.tsx      # /console/companies
                 ├── CompanyDetailPage.tsx  # /console/companies/:id
                 └── admin/
-                    ├── AdminTemplatesPage.tsx
-                    ├── AdminTemplateNewPage.tsx
-                    ├── AdminTemplateEditPage.tsx
-                    └── AdminUsersPage.tsx
+                    └── AdminUsersPage.tsx # /console/admin/users (admin only)
 ```
 
 ---
@@ -238,9 +238,9 @@ model Template {
   fileName    String
   fields      String                      // JSON: FieldSchema[]
   status      String    @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
-  ownerId     String?                     // null = system/admin template
-  owner       User?     @relation(fields: [ownerId], references: [id])
-  isPublic    Boolean   @default(true)
+  ownerId     String                      // every template belongs to a user
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  isPublic    Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   projects    Project[]
@@ -275,6 +275,10 @@ model Project {
 > stored as `String` (TEXT). Validation is enforced at the application layer (zod schemas).
 > `Json` fields are stored as `String` (TEXT) since SQLite has no native JSON column type —
 > always `JSON.parse()`/`JSON.stringify()` when reading/writing.
+>
+> **Note on template ownership**: Every template requires an owner — there are no system/admin
+> templates. Any authenticated user can create, edit, and delete their own templates. Users only
+> see templates they own (or templates marked `isPublic = true` by other users).
 
 ---
 
@@ -386,15 +390,15 @@ companies.create(data)              → Company
 companies.update(id, data)          → Company
 companies.delete(id)                → void
 
-// Templates
-templates.list(statusFilter?)       → Template[]   // no fileContent in list
-templates.get(id)                   → Template     // includes fileContent
+// Templates (any authenticated user; scoped to their own templates)
+templates.list(statusFilter?)       → Template[]   // caller's own templates, no fileContent
+templates.get(id)                   → Template     // includes fileContent; must own or isPublic
 templates.parseTags(fileBuffer)     → string[]     // extract {{tags}} from .docx
-templates.create(data)              → Template
-templates.update(id, data)          → Template
-templates.setStatus(id, status)     → Template
-templates.delete(id)                → void
-templates.getPreviewHtml(id)        → string       // mammoth conversion
+templates.create(data)              → Template     // ownerId set to caller automatically
+templates.update(id, data)          → Template     // must own
+templates.setStatus(id, status)     → Template     // must own
+templates.delete(id)                → void         // must own
+templates.getPreviewHtml(id)        → string       // mammoth conversion; must own or isPublic
 
 // Projects
 projects.list()                     → Project[]
@@ -413,7 +417,9 @@ projects.delete(id)                 → void
 |---|---|---|
 | Auth | `/` | Logo placeholder, login form, "create account" toggle |
 | Dashboard | `/console` | Stats, recent projects, quick actions |
-| Templates | `/console/templates` | Grid of PUBLISHED templates |
+| My Templates | `/console/templates` | Caller's own templates — grid with status badges |
+| New Template | `/console/templates/new` | Upload .docx → configure fields → publish |
+| Edit Template | `/console/templates/:id/edit` | Edit fields, status, name |
 | Fill Template | `/console/templates/:id` | Split view: form left, preview right |
 | Projects | `/console/projects` | List with status badges + filter |
 | Project Detail | `/console/projects/:id` | Values, re-edit, export (format picker) |
@@ -421,10 +427,7 @@ projects.delete(id)                 → void
 | Perfil Detail | `/console/perfis/:id` | Create/edit form |
 | Companies | `/console/companies` | List + create button |
 | Company Detail | `/console/companies/:id` | Create/edit form |
-| Admin Templates | `/console/admin/templates` | All templates + status management |
-| Admin New Template | `/console/admin/templates/new` | Upload → tag config |
-| Admin Edit Template | `/console/admin/templates/:id` | Edit fields + change status |
-| Admin Users | `/console/admin/users` | User list + toggle admin |
+| Admin Users | `/console/admin/users` | User list + toggle admin (admin only) |
 
 ---
 
@@ -483,14 +486,13 @@ Ship migrations inside the app bundle.
 5. App router + protected shell (sidebar, header)
 6. Perfis IPC + pages
 7. Companies IPC + pages
-8. Template IPC: upload, tag parsing (`docxtemplater`), preview (`mammoth`)
-9. Admin template pages (upload → field config → publish)
-10. Template browser page
-11. Template fill page — split view with live preview
-12. Project generation (docx + pdf export)
-13. Projects list + detail pages
-14. Dashboard stats
-15. Admin users page
+8. Template IPC: upload, tag parsing (`docxtemplater`), preview (`mammoth`); ownership scoped to caller
+9. Template management pages (new → field config → publish, edit, delete)
+10. Template fill page — split view with live preview
+11. Project generation (docx + pdf export)
+12. Projects list + detail pages
+13. Dashboard stats
+14. Admin users page
 
 ---
 
@@ -500,8 +502,8 @@ Ship migrations inside the app bundle.
 - First run: shows "Create account" form → creates admin user
 - Login stores session in memory; logout clears it → redirects to auth screen
 - User creates a Perfil (personal) and a Company
-- Admin uploads `.docx` with `{{nome}}` + `{{cnpj}}` → tags detected → configured → published
-- User opens template → selects Perfil + Company → `nome` and `cnpj` pre-filled
+- User uploads `.docx` with `{{nome}}` + `{{cnpj}}` → tags detected → configured → published
+- User opens their template → selects Perfil + Company → `nome` and `cnpj` pre-filled
 - Right panel shows live preview updating as user types
 - Generate → pick `.docx` → save dialog → file saved to disk + stored in project
 - Generate → pick `.pdf` → hidden window renders HTML → `printToPDF` → saved
