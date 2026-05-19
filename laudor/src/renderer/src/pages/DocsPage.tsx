@@ -239,7 +239,7 @@ export default function DocsPage(): React.JSX.Element {
     <div className="flex h-full gap-6">
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        <div className="max-w-2xl">{pageComponents[active]}</div>
+        {pageComponents[active]}
       </div>
 
       {/* Picker */}
