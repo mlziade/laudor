@@ -106,7 +106,7 @@ export interface TemplateDTO {
 }
 
 export interface TemplateDTOWithContent extends TemplateDTO {
-  fileContent: Buffer
+  fileContent: Uint8Array
 }
 
 export interface ProjectDTO {
@@ -168,7 +168,7 @@ export interface CreateTemplateInput {
   name: string
   description?: string
   category?: string
-  fileContent: Buffer
+  fileContent: Uint8Array
   fileName: string
   fields: FieldSchema[]
   isPublic?: boolean

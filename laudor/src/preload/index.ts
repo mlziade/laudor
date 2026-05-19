@@ -33,7 +33,13 @@ const api = {
     list: (userId: string, statusFilter?: string) =>
       ipcRenderer.invoke('templates:list', userId, statusFilter),
     get: (userId: string, id: string) => ipcRenderer.invoke('templates:get', userId, id),
-    parseTags: (fileBuffer: Buffer) => ipcRenderer.invoke('templates:parseTags', fileBuffer),
+    parseTags: (fileBuffer: Uint8Array) => ipcRenderer.invoke('templates:parseTags', fileBuffer),
+    previewHtmlFromBuffer: (fileBuffer: Uint8Array) =>
+      ipcRenderer.invoke('templates:previewHtmlFromBuffer', fileBuffer),
+    toPdfFromBuffer: (fileBuffer: Uint8Array) =>
+      ipcRenderer.invoke('templates:toPdfFromBuffer', fileBuffer),
+    toPdf: (userId: string, id: string) =>
+      ipcRenderer.invoke('templates:toPdf', userId, id),
     create: (userId: string, data: unknown) =>
       ipcRenderer.invoke('templates:create', userId, data),
     update: (userId: string, id: string, data: unknown) =>

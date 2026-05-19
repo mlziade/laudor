@@ -47,7 +47,11 @@ async function generateDocx(
   values: Record<string, string>
 ): Promise<Buffer> {
   const zip = new PizZip(templateBuffer)
-  const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true })
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true,
+    linebreaks: true,
+    delimiters: { start: '{{', end: '}}' }
+  })
   doc.setData(values)
   doc.render()
   return Buffer.from(doc.getZip().generate({ type: 'nodebuffer' }))

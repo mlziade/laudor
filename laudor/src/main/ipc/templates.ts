@@ -1,9 +1,15 @@
-import { ipcMain } from 'electron'
+import { ipcMain, BrowserWindow, app } from 'electron'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 import { getDb } from '../db'
 import type { Prisma } from '@prisma/client'
 import PizZip from 'pizzip'
 import Docxtemplater from 'docxtemplater'
 import mammoth from 'mammoth'
+import fs from 'fs'
+import path from 'path'
+
+const execFileAsync = promisify(execFile)
 
 type TemplateRecord = Prisma.TemplateGetPayload<Record<string, never>>
 
@@ -49,6 +55,60 @@ function canAccess(t: TemplateRecord, userId: string): boolean {
   return t.ownerId === userId || t.isPublic
 }
 
+async function convertViaWord(docxPath: string, pdfPath: string): Promise<void> {
+  const d = docxPath.replace(/\\/g, '/')
+  const p = pdfPath.replace(/\\/g, '/')
+  const script = [
+    '$word = New-Object -ComObject Word.Application',
+    '$word.Visible = $false',
+    '$word.DisplayAlerts = 0',
+    `$doc = $word.Documents.Open("${d}")`,
+    `$doc.ExportAsFixedFormat("${p}", 17)`,
+    '$doc.Close($false)',
+    '$word.Quit()'
+  ].join('\r\n')
+  const scriptPath = `${docxPath}.ps1`
+  fs.writeFileSync(scriptPath, script, 'utf-8')
+  try {
+    await execFileAsync('powershell.exe', [
+      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', scriptPath
+    ], { timeout: 30000 })
+  } finally {
+    try { fs.unlinkSync(scriptPath) } catch { /* ignore */ }
+  }
+}
+
+async function convertViaMammoth(buf: Buffer): Promise<Buffer> {
+  const { value: bodyHtml } = await mammoth.convertToHtml({ buffer: buf })
+  const fullHtml = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; padding: 2.54cm 3cm; color: #000; background: #fff; }
+p { margin-bottom: 6pt; }
+h1 { font-size: 16pt; font-weight: bold; margin: 12pt 0 6pt; }
+h2 { font-size: 14pt; font-weight: bold; margin: 10pt 0 4pt; }
+h3 { font-size: 12pt; font-weight: bold; margin: 8pt 0 4pt; }
+table { border-collapse: collapse; width: 100%; margin-bottom: 8pt; }
+td, th { border: 1px solid #000; padding: 3pt 6pt; font-size: 11pt; }
+th { background: #f0f0f0; font-weight: bold; }
+ul, ol { padding-left: 20pt; margin-bottom: 6pt; }
+li { margin-bottom: 2pt; }
+strong, b { font-weight: bold; }
+em, i { font-style: italic; }
+img { max-width: 100%; }
+</style></head><body>${bodyHtml}</body></html>`
+  const tmpHtml = path.join(app.getPath('temp'), `laudor-preview-${Date.now()}.html`)
+  fs.writeFileSync(tmpHtml, fullHtml, 'utf-8')
+  const win = new BrowserWindow({ show: false, width: 1024, height: 768 })
+  try {
+    await win.loadFile(tmpHtml)
+    return await win.webContents.printToPDF({ printBackground: false, pageSize: 'A4', margins: { marginType: 'default' } })
+  } finally {
+    win.destroy()
+    try { fs.unlinkSync(tmpHtml) } catch { /* ignore */ }
+  }
+}
+
 export function registerTemplatesHandlers(): void {
   ipcMain.handle('templates:list', async (_, userId: string, statusFilter?: string) => {
     const db = getDb()
@@ -88,23 +148,77 @@ export function registerTemplatesHandlers(): void {
     return toDTO(template, true)
   })
 
-  ipcMain.handle('templates:parseTags', async (_, fileBuffer: Buffer) => {
-    const zip = new PizZip(fileBuffer)
-    const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true })
+  ipcMain.handle('templates:parseTags', async (_, fileBuffer: Buffer | Uint8Array) => {
+    const buf = Buffer.isBuffer(fileBuffer) ? fileBuffer : Buffer.from(fileBuffer)
+    const zip = new PizZip(buf)
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+      delimiters: { start: '{{', end: '}}' }
+    })
     const fullText = doc.getFullText()
     const matches = fullText.match(/\{\{([^}]+)\}\}/g) ?? []
     const tags = [...new Set(matches.map((m) => m.replace(/^\{\{|\}\}$/g, '').trim()))]
     return tags
   })
 
+  ipcMain.handle('templates:previewHtmlFromBuffer', async (_, fileBuffer: Buffer | Uint8Array) => {
+    const buf = Buffer.isBuffer(fileBuffer) ? fileBuffer : Buffer.from(fileBuffer)
+    const result = await mammoth.convertToHtml({ buffer: buf })
+    return result.value
+  })
+
+  ipcMain.handle('templates:toPdfFromBuffer', async (_, fileBuffer: Buffer | Uint8Array) => {
+    const buf = Buffer.isBuffer(fileBuffer) ? fileBuffer : Buffer.from(fileBuffer)
+    const base = path.join(app.getPath('temp'), `laudor-${Date.now()}`)
+    const tmpDocx = `${base}.docx`
+    const tmpPdf = `${base}.pdf`
+
+    fs.writeFileSync(tmpDocx, buf)
+    try {
+      await convertViaWord(tmpDocx, tmpPdf)
+      return fs.readFileSync(tmpPdf)
+    } catch {
+      return await convertViaMammoth(buf)
+    } finally {
+      try { fs.unlinkSync(tmpDocx) } catch { /* ignore */ }
+      try { fs.unlinkSync(tmpPdf) } catch { /* ignore */ }
+    }
+  })
+
+  ipcMain.handle('templates:toPdf', async (_, userId: string, id: string) => {
+    const db = getDb()
+    const template = await db.template.findUnique({ where: { id } })
+    if (!template) throw new Error('Template não encontrado')
+    if (!canAccess(template, userId)) throw new Error('Acesso negado')
+
+    const base = path.join(app.getPath('temp'), `laudor-${Date.now()}`)
+    const tmpDocx = `${base}.docx`
+    const tmpPdf = `${base}.pdf`
+
+    fs.writeFileSync(tmpDocx, template.fileContent)
+    try {
+      await convertViaWord(tmpDocx, tmpPdf)
+      return fs.readFileSync(tmpPdf)
+    } catch {
+      return await convertViaMammoth(template.fileContent)
+    } finally {
+      try { fs.unlinkSync(tmpDocx) } catch { /* ignore */ }
+      try { fs.unlinkSync(tmpPdf) } catch { /* ignore */ }
+    }
+  })
+
   ipcMain.handle('templates:create', async (_, userId: string, data: CreateTemplateInput) => {
     const db = getDb()
+    const fileContent = Buffer.isBuffer(data.fileContent)
+      ? data.fileContent
+      : Buffer.from(data.fileContent as unknown as Uint8Array)
     const template = await db.template.create({
       data: {
         name: data.name,
         description: data.description,
         category: data.category,
-        fileContent: data.fileContent,
+        fileContent,
         fileName: data.fileName,
         fields: JSON.stringify(data.fields ?? []),
         isPublic: data.isPublic ?? false,
