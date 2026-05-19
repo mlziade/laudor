@@ -17,6 +17,7 @@ import PerfilDetailPage from './pages/PerfilDetailPage'
 import CompaniesPage from './pages/CompaniesPage'
 import CompanyDetailPage from './pages/CompanyDetailPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
+import DocsPage from './pages/DocsPage'
 
 export default function App(): React.JSX.Element {
   const [user, setUser] = useState<UserDTO | null>(null)
@@ -47,6 +48,7 @@ export default function App(): React.JSX.Element {
             <Route path="companies" element={<CompaniesPage />} />
             <Route path="companies/:id" element={<CompanyDetailPage />} />
             <Route path="admin/users" element={<AdminUsersPage />} />
+            <Route path="docs" element={<DocsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

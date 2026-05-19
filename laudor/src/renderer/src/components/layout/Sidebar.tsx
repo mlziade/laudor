@@ -8,6 +8,7 @@ import {
   Building2,
   Users,
   LogOut,
+  BookOpen,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -28,7 +29,8 @@ const navItems: NavItem[] = [
   { label: 'Projetos', to: '/console/projects', icon: <FolderOpen size={18} /> },
   { label: 'Perfis', to: '/console/perfis', icon: <User size={18} /> },
   { label: 'Empresas', to: '/console/companies', icon: <Building2 size={18} /> },
-  { label: 'Usuários', to: '/console/admin/users', icon: <Users size={18} />, adminOnly: true }
+  { label: 'Usuários', to: '/console/admin/users', icon: <Users size={18} />, adminOnly: true },
+  { label: 'Docs', to: '/console/docs', icon: <BookOpen size={18} /> }
 ]
 
 interface SidebarProps {
