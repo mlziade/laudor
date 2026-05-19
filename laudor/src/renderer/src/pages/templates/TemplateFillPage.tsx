@@ -97,7 +97,8 @@ export default function TemplateFillPage(): React.JSX.Element {
       const replacement = val
         ? `<span style="color:${color} !important;font-weight:500">${val}</span>`
         : ''
-      html = html.replaceAll(`{{${key}}}`, replacement)
+      const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      html = html.replace(new RegExp(`\\{\\{${escaped}(?::[^}]*)?\\}\\}`, 'g'), replacement)
     }
     return html
   }, [previewHtml, values, fieldColors])
@@ -297,6 +298,9 @@ export default function TemplateFillPage(): React.JSX.Element {
                     {field.required && <span className="text-destructive ml-1">*</span>}
                   </Label>
                 </div>
+                {field.description && (
+                  <p className="text-xs text-muted-foreground">{field.description}</p>
+                )}
                 {field.type === 'textarea' ? (
                   <Textarea
                     value={values[field.key] ?? ''}
@@ -381,7 +385,7 @@ export default function TemplateFillPage(): React.JSX.Element {
 
           {/* Tab content */}
           {previewTab === 'text' ? (
-            <div className="flex-1 overflow-auto bg-white p-6">
+            <div className="flex-1 overflow-auto bg-white p-6 text-black">
               <div
                 className="prose max-w-none text-sm"
                 dangerouslySetInnerHTML={{ __html: liveHtml() }}

@@ -106,6 +106,7 @@ export default function TemplateEditPage(): React.JSX.Element {
         required: f.required,
         placeholder: f.placeholder,
         defaultFrom: f.defaultFrom,
+        description: f.description || undefined,
         options:
           f.type === 'dropdown' && f._optionsText
             ? f._optionsText.split('\n').map((o) => o.trim()).filter(Boolean)
@@ -262,6 +263,16 @@ export default function TemplateEditPage(): React.JSX.Element {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Descrição</Label>
+                <Input
+                  value={field.description ?? ''}
+                  onChange={(e) => updateField(index, { description: e.target.value || undefined })}
+                  className="h-8 text-xs"
+                  placeholder="Instrução para quem preenche este campo"
+                />
               </div>
 
               {field.type === 'dropdown' && (

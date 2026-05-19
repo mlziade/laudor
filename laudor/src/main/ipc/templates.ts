@@ -158,8 +158,19 @@ export function registerTemplatesHandlers(): void {
     })
     const fullText = doc.getFullText()
     const matches = fullText.match(/\{\{([^}]+)\}\}/g) ?? []
-    const tags = [...new Set(matches.map((m) => m.replace(/^\{\{|\}\}$/g, '').trim()))]
-    return tags
+    const seen = new Set<string>()
+    const parsed: { key: string; description?: string }[] = []
+    for (const m of matches) {
+      const inner = m.replace(/^\{\{|\}\}$/g, '').trim()
+      const colonIdx = inner.indexOf(':')
+      const key = colonIdx >= 0 ? inner.slice(0, colonIdx).trim() : inner
+      const description = colonIdx >= 0 ? inner.slice(colonIdx + 1).trim() : undefined
+      if (!seen.has(key)) {
+        seen.add(key)
+        parsed.push({ key, description: description || undefined })
+      }
+    }
+    return parsed
   })
 
   ipcMain.handle('templates:previewHtmlFromBuffer', async (_, fileBuffer: Buffer | Uint8Array) => {
@@ -220,7 +231,14 @@ export function registerTemplatesHandlers(): void {
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
-        delimiters: { start: '{{', end: '}}' }
+        delimiters: { start: '{{', end: '}}' },
+        parser: (tag: string) => ({
+          get: (scope: Record<string, string>) => {
+            const colonIdx = tag.indexOf(':')
+            const key = colonIdx >= 0 ? tag.slice(0, colonIdx).trim() : tag.trim()
+            return scope[key] ?? ''
+          }
+        })
       })
       doc.render(values)
       const filledBuf = Buffer.from(doc.getZip().generate({ type: 'nodebuffer' }))

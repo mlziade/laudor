@@ -27,6 +27,7 @@ export interface FieldSchema {
   required: boolean
   defaultFrom?: DefaultFromSource
   placeholder?: string
+  description?: string
 }
 
 export type TemplateStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'

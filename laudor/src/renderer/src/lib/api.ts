@@ -68,7 +68,7 @@ export const templatesApi = {
     api.templates.list(userId, statusFilter) as Promise<TemplateDTO[]>,
   get: (userId: string, id: string): Promise<TemplateDTOWithContent> =>
     api.templates.get(userId, id) as Promise<TemplateDTOWithContent>,
-  parseTags: (fileBuffer: Uint8Array): Promise<string[]> => api.templates.parseTags(fileBuffer),
+  parseTags: (fileBuffer: Uint8Array): Promise<{ key: string; description?: string }[]> => api.templates.parseTags(fileBuffer),
   previewHtmlFromBuffer: (fileBuffer: Uint8Array): Promise<string> =>
     api.templates.previewHtmlFromBuffer(fileBuffer),
   toPdfFromBuffer: (fileBuffer: Uint8Array): Promise<Uint8Array> =>

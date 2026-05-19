@@ -103,13 +103,14 @@ export default function TemplateNewPage(): React.JSX.Element {
         templatesApi.toPdfFromBuffer(buffer)
       ])
 
-      setParsedTags(tags)
+      setParsedTags(tags.map((t) => t.key))
       setPdfBuffer(pdf)
       setFields(
-        tags.map((tag) => ({
-          key: tag,
-          label: tag,
-          type: 'text',
+        tags.map((t) => ({
+          key: t.key,
+          label: t.key,
+          type: t.description ? 'textarea' : ('text' as FieldType),
+          description: t.description,
           required: true
         }))
       )
@@ -142,6 +143,7 @@ export default function TemplateNewPage(): React.JSX.Element {
         required: f.required,
         placeholder: f.placeholder,
         defaultFrom: f.defaultFrom,
+        description: f.description || undefined,
         options:
           f.type === 'dropdown' && f._optionsText
             ? f._optionsText
@@ -405,6 +407,19 @@ export default function TemplateNewPage(): React.JSX.Element {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <FieldLabel
+                        label="Descrição"
+                        tip={"Instrução para quem vai preencher este campo. Também pode ser embutida na tag do documento: {{chave:descrição aqui}}."}
+                      />
+                      <Input
+                        value={field.description ?? ''}
+                        onChange={(e) => updateField(index, { description: e.target.value || undefined })}
+                        className="h-8 text-xs"
+                        placeholder="Ex: Data, horário e local da realização do exame pericial"
+                      />
                     </div>
 
                     {field.type === 'dropdown' && (

@@ -42,6 +42,10 @@ function toDTO(p: ProjectRecord): object {
   }
 }
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 async function generateDocx(
   templateBuffer: Buffer,
   values: Record<string, string>
@@ -50,7 +54,14 @@ async function generateDocx(
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
-    delimiters: { start: '{{', end: '}}' }
+    delimiters: { start: '{{', end: '}}' },
+    parser: (tag: string) => ({
+      get: (scope: Record<string, string>) => {
+        const colonIdx = tag.indexOf(':')
+        const key = colonIdx >= 0 ? tag.slice(0, colonIdx).trim() : tag.trim()
+        return scope[key] ?? ''
+      }
+    })
   })
   doc.render(values)
   return Buffer.from(doc.getZip().generate({ type: 'nodebuffer' }))
@@ -59,7 +70,7 @@ async function generateDocx(
 async function generatePdf(htmlContent: string, values: Record<string, string>): Promise<Buffer> {
   let html = htmlContent
   for (const [key, value] of Object.entries(values)) {
-    html = html.replaceAll(`{{${key}}}`, value)
+    html = html.replace(new RegExp(`\\{\\{${escapeRegex(key)}(?::[^}]*)?\\}\\}`, 'g'), value)
   }
 
   const win = new BrowserWindow({ show: false, webPreferences: { offscreen: true } })
