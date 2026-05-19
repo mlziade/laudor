@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FileText, Pencil, Trash2, Eye, X, Loader2, Archive } from 'lucide-react'
+import { Plus, FileText, Pencil, Trash2, Eye, X, Loader2, Archive, Search } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { templatesApi } from '../../lib/api'
 import { cn, formatDate } from '../../lib/utils'
@@ -8,6 +8,7 @@ import type { TemplateDTO, TemplateStatus } from '../../types'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
 import { PdfPreview } from '../../components/ui/pdf-preview'
 import { PreviewSkeleton } from './PreviewSkeleton'
 
@@ -30,6 +31,7 @@ export default function TemplatesPage(): React.JSX.Element {
   const [templates, setTemplates] = useState<TemplateDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<TemplateStatus | 'ALL'>('ALL')
+  const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [previewPdf, setPreviewPdf] = useState<Uint8Array | null>(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
@@ -77,7 +79,18 @@ export default function TemplatesPage(): React.JSX.Element {
     if (selectedId === id) closePreview()
   }
 
-  const filtered = filter === 'ALL' ? templates : templates.filter((t) => t.status === filter)
+  const query = search.trim().toLowerCase()
+  const filtered = templates.filter((t) => {
+    if (filter !== 'ALL' && t.status !== filter) return false
+    if (query) {
+      return (
+        t.name.toLowerCase().includes(query) ||
+        (t.category ?? '').toLowerCase().includes(query) ||
+        (t.description ?? '').toLowerCase().includes(query)
+      )
+    }
+    return true
+  })
   const selectedTemplate = templates.find((t) => t.id === selectedId)
   const isPreviewing = selectedId !== null
 
@@ -85,7 +98,7 @@ export default function TemplatesPage(): React.JSX.Element {
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {(['ALL', 'DRAFT', 'PUBLISHED', 'ARCHIVED'] as const).map((s) => (
             <Button
               key={s}
@@ -96,6 +109,15 @@ export default function TemplatesPage(): React.JSX.Element {
               {s === 'ALL' ? 'Todos' : STATUS_LABELS[s]}
             </Button>
           ))}
+          <div className="relative ml-1">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar templates..."
+              className="h-8 pl-8 text-sm w-52"
+            />
+          </div>
         </div>
         <Button onClick={() => navigate('/console/templates/new')}>
           <Plus size={16} />
