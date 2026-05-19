@@ -158,7 +158,7 @@ export default function PerfilDetailPage(): React.JSX.Element {
             {/* Picture + identity */}
             <div className="flex items-start gap-6">
               <div className="flex flex-col items-center gap-2">
-                <Avatar src={picture} fallback={watch('name') || '?'} size="lg" />
+                <Avatar src={picture} size="lg" />
                 <Button
                   type="button"
                   size="sm"

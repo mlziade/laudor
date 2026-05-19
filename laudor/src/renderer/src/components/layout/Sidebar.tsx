@@ -51,7 +51,6 @@ export default function Sidebar({ collapsed }: SidebarProps): React.JSX.Element 
   }, [user])
 
   const visibleItems = navItems.filter((item) => !item.adminOnly || user?.isAdmin)
-  const emailInitials = user?.email?.slice(0, 2) ?? '?'
   const brandColor = theme === 'dark' ? '#ffffff' : '#000000'
 
   return (
@@ -96,14 +95,14 @@ export default function Sidebar({ collapsed }: SidebarProps): React.JSX.Element 
 
       <div className="border-t p-2">
         {!collapsed && (
-          <div className="mb-1 flex items-center gap-2 px-2 py-1">
-            <Avatar src={picture} fallback={emailInitials} size="sm" />
-            <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
+          <div className="mb-1 flex items-center gap-2.5 px-2 py-1">
+            <Avatar src={picture} size="md" />
+            <span className="truncate text-sm font-medium text-sidebar-foreground">{user?.email}</span>
           </div>
         )}
         {collapsed && (
           <div className="mb-1 flex justify-center py-1">
-            <Avatar src={picture} fallback={emailInitials} size="sm" />
+            <Avatar src={picture} size="md" />
           </div>
         )}
         <button

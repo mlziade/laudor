@@ -33,7 +33,8 @@
       "WebFetch(domain:stitch.withgoogle.com)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(npm create *)"
+      "Bash(npm create *)",
+      "WebSearch"
     ],
     "deny": [
       "Read(.env*)",
