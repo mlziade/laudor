@@ -53,7 +53,7 @@ export default function PerfisPage(): React.JSX.Element {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-3">
           {perfis.map((perfil) => (
             <Card key={perfil.id} className="cursor-pointer hover:bg-accent/50 transition-colors">
               <CardContent className="flex items-center justify-between p-4">
