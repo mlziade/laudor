@@ -75,6 +75,8 @@ export const templatesApi = {
     api.templates.toPdfFromBuffer(fileBuffer),
   toPdf: (userId: string, id: string): Promise<Uint8Array> =>
     api.templates.toPdf(userId, id),
+  filledPdf: (userId: string, id: string, values: Record<string, string>): Promise<Uint8Array> =>
+    api.templates.filledPdf(userId, id, values),
   create: (userId: string, data: CreateTemplateInput): Promise<TemplateDTO> =>
     api.templates.create(userId, data) as Promise<TemplateDTO>,
   update: (userId: string, id: string, data: UpdateTemplateInput): Promise<TemplateDTO> =>

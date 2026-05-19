@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Download } from 'lucide-react'
+import { ArrowLeft, Download, RefreshCw, FileText, Loader2 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { templatesApi, projectsApi, perfisApi, companiesApi } from '../../lib/api'
 import type {
@@ -10,6 +10,7 @@ import type {
   FieldSchema,
   ExportFormat
 } from '../../types'
+import { cn } from '../../lib/utils'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
@@ -28,6 +29,25 @@ import {
   DialogTitle,
   DialogFooter
 } from '../../components/ui/dialog'
+import { PdfPreview } from '../../components/ui/pdf-preview'
+import { PreviewSkeleton } from './PreviewSkeleton'
+
+function hslToHex(h: number, s: number, l: number): string {
+  const sl = s / 100
+  const ll = l / 100
+  const a = sl * Math.min(ll, 1 - ll)
+  const f = (n: number): string => {
+    const k = (n + h / 30) % 12
+    const color = ll - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+    return Math.round(255 * color).toString(16).padStart(2, '0')
+  }
+  return `#${f(0)}${f(8)}${f(4)}`
+}
+
+function defaultFieldColor(index: number): string {
+  const hue = Math.round((index * 137.508) % 360)
+  return hslToHex(hue, 65, 42)
+}
 
 function getDefaultValue(
   field: FieldSchema,
@@ -57,11 +77,15 @@ export default function TemplateFillPage(): React.JSX.Element {
   const [selectedPerfilId, setSelectedPerfilId] = useState<string>('__none__')
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('__none__')
   const [values, setValues] = useState<Record<string, string>>({})
+  const [fieldColors, setFieldColors] = useState<Record<string, string>>({})
   const [projectName, setProjectName] = useState('')
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [previewTab, setPreviewTab] = useState<'text' | 'pdf'>('text')
+  const [pdfBuffer, setPdfBuffer] = useState<Uint8Array | null>(null)
+  const [generatingPdf, setGeneratingPdf] = useState(false)
 
   const selectedPerfil = perfis.find((p) => p.id === selectedPerfilId) ?? null
   const selectedCompany = companies.find((c) => c.id === selectedCompanyId) ?? null
@@ -69,10 +93,14 @@ export default function TemplateFillPage(): React.JSX.Element {
   const liveHtml = useCallback((): string => {
     let html = previewHtml
     for (const [key, val] of Object.entries(values)) {
-      html = html.replaceAll(`{{${key}}}`, val)
+      const color = fieldColors[key] ?? '#000000'
+      const replacement = val
+        ? `<span style="color:${color} !important;font-weight:500">${val}</span>`
+        : ''
+      html = html.replaceAll(`{{${key}}}`, replacement)
     }
     return html
-  }, [previewHtml, values])
+  }, [previewHtml, values, fieldColors])
 
   useEffect(() => {
     if (!user || !id) return
@@ -89,10 +117,13 @@ export default function TemplateFillPage(): React.JSX.Element {
         setCompanies(c)
         setProjectName(`Projeto - ${tmpl.name}`)
         const initial: Record<string, string> = {}
-        for (const field of tmpl.fields) {
+        const colors: Record<string, string> = {}
+        tmpl.fields.forEach((field, i) => {
           initial[field.key] = ''
-        }
+          colors[field.key] = defaultFieldColor(i)
+        })
         setValues(initial)
+        setFieldColors(colors)
       })
       .finally(() => setLoading(false))
   }, [id, user])
@@ -114,6 +145,23 @@ export default function TemplateFillPage(): React.JSX.Element {
 
   function setValue(key: string, value: string): void {
     setValues((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function setFieldColor(key: string, color: string): void {
+    setFieldColors((prev) => ({ ...prev, [key]: color }))
+  }
+
+  async function generatePdfPreview(): Promise<void> {
+    if (!user || !id) return
+    setGeneratingPdf(true)
+    try {
+      const pdf = await templatesApi.filledPdf(user.id, id, values)
+      setPdfBuffer(pdf)
+    } catch {
+      // leave pdfBuffer null — PdfPreview shows empty state
+    } finally {
+      setGeneratingPdf(false)
+    }
   }
 
   async function handleGenerate(format: ExportFormat): Promise<void> {
@@ -150,14 +198,24 @@ export default function TemplateFillPage(): React.JSX.Element {
           <Button variant="ghost" size="sm" onClick={() => navigate('/console/templates')}>
             <ArrowLeft size={16} />
           </Button>
-          <div>
-            <h2 className="font-semibold">{template.name}</h2>
-            <Input
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              className="mt-1 h-7 text-xs w-60"
-              placeholder="Nome do projeto"
-            />
+          <div className="flex items-end gap-6">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Template
+              </p>
+              <h2 className="font-semibold leading-tight">{template.name}</h2>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Projeto
+              </p>
+              <Input
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                className="h-7 text-xs w-60"
+                placeholder="Nome do projeto"
+              />
+            </div>
           </div>
         </div>
         <Button onClick={() => setShowExportDialog(true)} disabled={generating}>
@@ -171,47 +229,74 @@ export default function TemplateFillPage(): React.JSX.Element {
       <div className="flex flex-1 gap-4 overflow-hidden">
         {/* Left panel — form */}
         <div className="w-[40%] flex-shrink-0 overflow-auto space-y-4 pr-2">
-          <div className="space-y-2">
-            <Label>Perfil</Label>
-            <Select value={selectedPerfilId} onValueChange={setSelectedPerfilId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar perfil..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Nenhum</SelectItem>
-                {perfis.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Auto-fill sources */}
+          <div className="rounded-lg border border-dashed bg-muted/40 p-4 space-y-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Preenchimento automático
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Selecione um perfil ou empresa para preencher campos vinculados automaticamente.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Perfil</Label>
+              <Select value={selectedPerfilId} onValueChange={setSelectedPerfilId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar perfil..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Nenhum</SelectItem>
+                  {perfis.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Empresa</Label>
+              <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar empresa..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Nenhuma</SelectItem>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Empresa</Label>
-            <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar empresa..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Nenhuma</SelectItem>
-                {companies.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="border-t pt-4 space-y-3">
+          {/* Manual fields */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Campos do documento
+            </p>
             {template.fields.map((field) => (
-              <div key={field.key} className="space-y-1">
-                <Label className="text-sm">
-                  {field.label}
-                  {field.required && <span className="text-destructive ml-1">*</span>}
-                </Label>
+              <div
+                key={field.key}
+                className="space-y-1 border-l-[3px] pl-2 transition-colors"
+                style={{ borderColor: fieldColors[field.key] ?? defaultFieldColor(0) }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="color"
+                    value={fieldColors[field.key] ?? defaultFieldColor(0)}
+                    onChange={(e) => setFieldColor(field.key, e.target.value)}
+                    className="h-[18px] w-[18px] cursor-pointer rounded-[3px] border-0 p-0"
+                    title="Cor na pré-visualização"
+                  />
+                  <Label className="text-sm">
+                    {field.label}
+                    {field.required && <span className="text-destructive ml-1">*</span>}
+                  </Label>
+                </div>
                 {field.type === 'textarea' ? (
                   <Textarea
                     value={values[field.key] ?? ''}
@@ -250,11 +335,74 @@ export default function TemplateFillPage(): React.JSX.Element {
         </div>
 
         {/* Right panel — preview */}
-        <div className="flex-1 overflow-auto rounded-lg border bg-white p-6">
-          <div
-            className="prose max-w-none text-sm"
-            dangerouslySetInnerHTML={{ __html: liveHtml() }}
-          />
+        <div className="flex flex-1 flex-col overflow-hidden rounded-lg border">
+          {/* Tab bar */}
+          <div className="flex items-center gap-1 border-b bg-muted/40 px-3 py-2">
+            <button
+              onClick={() => setPreviewTab('text')}
+              className={cn(
+                'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                previewTab === 'text'
+                  ? 'bg-background shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Texto
+            </button>
+            <button
+              onClick={() => setPreviewTab('pdf')}
+              className={cn(
+                'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+                previewTab === 'pdf'
+                  ? 'bg-background shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              PDF
+            </button>
+            {previewTab === 'pdf' && (
+              <div className="ml-auto">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={generatePdfPreview}
+                  disabled={generatingPdf}
+                >
+                  {generatingPdf ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <RefreshCw size={13} />
+                  )}
+                  {generatingPdf ? 'Gerando...' : 'Gerar pré-visualização'}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Tab content */}
+          {previewTab === 'text' ? (
+            <div className="flex-1 overflow-auto bg-white p-6">
+              <div
+                className="prose max-w-none text-sm"
+                dangerouslySetInnerHTML={{ __html: liveHtml() }}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 min-h-0">
+              {generatingPdf ? (
+                <PreviewSkeleton className="h-full" />
+              ) : pdfBuffer ? (
+                <PdfPreview buffer={pdfBuffer} className="h-full" />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                  <FileText size={36} className="text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Clique em "Gerar pré-visualização" para ver o PDF com os valores preenchidos.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

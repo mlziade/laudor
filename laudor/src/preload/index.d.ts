@@ -30,6 +30,7 @@ declare global {
         previewHtmlFromBuffer: (fileBuffer: Uint8Array) => Promise<string>
         toPdfFromBuffer: (fileBuffer: Uint8Array) => Promise<Uint8Array>
         toPdf: (userId: string, id: string) => Promise<Uint8Array>
+        filledPdf: (userId: string, id: string, values: Record<string, string>) => Promise<Uint8Array>
         create: (userId: string, data: unknown) => Promise<unknown>
         update: (userId: string, id: string, data: unknown) => Promise<unknown>
         setStatus: (userId: string, id: string, status: string) => Promise<unknown>

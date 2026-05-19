@@ -40,6 +40,8 @@ const api = {
       ipcRenderer.invoke('templates:toPdfFromBuffer', fileBuffer),
     toPdf: (userId: string, id: string) =>
       ipcRenderer.invoke('templates:toPdf', userId, id),
+    filledPdf: (userId: string, id: string, values: Record<string, string>) =>
+      ipcRenderer.invoke('templates:filledPdf', userId, id, values),
     create: (userId: string, data: unknown) =>
       ipcRenderer.invoke('templates:create', userId, data),
     update: (userId: string, id: string, data: unknown) =>

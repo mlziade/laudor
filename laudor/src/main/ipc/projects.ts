@@ -52,8 +52,7 @@ async function generateDocx(
     linebreaks: true,
     delimiters: { start: '{{', end: '}}' }
   })
-  doc.setData(values)
-  doc.render()
+  doc.render(values)
   return Buffer.from(doc.getZip().generate({ type: 'nodebuffer' }))
 }
 

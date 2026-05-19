@@ -208,6 +208,40 @@ export function registerTemplatesHandlers(): void {
     }
   })
 
+  ipcMain.handle(
+    'templates:filledPdf',
+    async (_, userId: string, id: string, values: Record<string, string>) => {
+      const db = getDb()
+      const template = await db.template.findUnique({ where: { id } })
+      if (!template) throw new Error('Template não encontrado')
+      if (!canAccess(template, userId)) throw new Error('Acesso negado')
+
+      const zip = new PizZip(template.fileContent)
+      const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+        delimiters: { start: '{{', end: '}}' }
+      })
+      doc.render(values)
+      const filledBuf = Buffer.from(doc.getZip().generate({ type: 'nodebuffer' }))
+
+      const base = path.join(app.getPath('temp'), `laudor-filled-${Date.now()}`)
+      const tmpDocx = `${base}.docx`
+      const tmpPdf = `${base}.pdf`
+
+      fs.writeFileSync(tmpDocx, filledBuf)
+      try {
+        await convertViaWord(tmpDocx, tmpPdf)
+        return fs.readFileSync(tmpPdf)
+      } catch {
+        return await convertViaMammoth(filledBuf)
+      } finally {
+        try { fs.unlinkSync(tmpDocx) } catch { /* ignore */ }
+        try { fs.unlinkSync(tmpPdf) } catch { /* ignore */ }
+      }
+    }
+  )
+
   ipcMain.handle('templates:create', async (_, userId: string, data: CreateTemplateInput) => {
     const db = getDb()
     const fileContent = Buffer.isBuffer(data.fileContent)
