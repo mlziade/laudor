@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FolderOpen, Trash2 } from 'lucide-react'
+import { FolderOpen, Trash2, Search } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { projectsApi } from '../lib/api'
 import type { ProjectDTO, ProjectStatus } from '../types'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { Card, CardContent } from '../components/ui/card'
+import { Input } from '../components/ui/input'
 import { formatDateTime } from '../lib/utils'
 
 export default function ProjectsPage(): React.JSX.Element {
@@ -15,6 +16,7 @@ export default function ProjectsPage(): React.JSX.Element {
   const [projects, setProjects] = useState<ProjectDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<ProjectStatus | 'ALL'>('ALL')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -31,8 +33,19 @@ export default function ProjectsPage(): React.JSX.Element {
     setProjects((prev) => prev.filter((p) => p.id !== id))
   }
 
-  const filtered =
-    filter === 'ALL' ? projects : projects.filter((p) => p.status === filter)
+  const query = search.trim().toLowerCase()
+  const filtered = projects.filter((p) => {
+    if (filter !== 'ALL' && p.status !== filter) return false
+    if (query) {
+      const valuesText = Object.values(p.values).join(' ').toLowerCase()
+      return (
+        p.name.toLowerCase().includes(query) ||
+        p.templateName.toLowerCase().includes(query) ||
+        valuesText.includes(query)
+      )
+    }
+    return true
+  })
 
   return (
     <div className="space-y-4">
@@ -47,6 +60,15 @@ export default function ProjectsPage(): React.JSX.Element {
             {s === 'ALL' ? 'Todos' : s === 'IN_PROGRESS' ? 'Em andamento' : 'Concluídos'}
           </Button>
         ))}
+        <div className="relative ml-2">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar projetos..."
+            className="h-8 pl-8 text-sm w-56"
+          />
+        </div>
       </div>
 
       {loading ? (
