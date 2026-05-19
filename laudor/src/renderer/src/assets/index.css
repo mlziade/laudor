@@ -118,7 +118,7 @@
   * {
     border-color: hsl(var(--border));
   }
-  html, body {
+  html, body, #root {
     overflow: hidden;
     height: 100%;
   }
