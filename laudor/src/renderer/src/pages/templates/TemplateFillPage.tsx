@@ -91,17 +91,20 @@ export default function TemplateFillPage(): React.JSX.Element {
   const selectedCompany = companies.find((c) => c.id === selectedCompanyId) ?? null
 
   const liveHtml = useCallback((): string => {
+    const labelMap: Record<string, string> = {}
+    for (const f of template?.fields ?? []) labelMap[f.key] = f.label
+
     let html = previewHtml
     for (const [key, val] of Object.entries(values)) {
-      const color = fieldColors[key] ?? '#000000'
+      const color = fieldColors[key] ?? '#888888'
+      const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const replacement = val
         ? `<span style="color:${color} !important;font-weight:500">${val}</span>`
-        : ''
-      const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        : `<span style="background:${color}1a;color:${color};border:1px dashed ${color}80;border-radius:3px;padding:0 5px;font-size:0.85em;font-style:italic;white-space:nowrap">${labelMap[key] ?? key}</span>`
       html = html.replace(new RegExp(`\\{\\{${escaped}(?::[^}]*)?\\}\\}`, 'g'), replacement)
     }
     return html
-  }, [previewHtml, values, fieldColors])
+  }, [previewHtml, values, fieldColors, template])
 
   useEffect(() => {
     if (!user || !id) return
