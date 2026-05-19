@@ -106,6 +106,7 @@ export default function ConsolePage(): React.JSX.Element {
           )}
         </CardContent>
       </Card>
+
     </div>
   )
 }

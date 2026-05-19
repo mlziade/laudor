@@ -236,41 +236,41 @@ export default function DocsPage(): React.JSX.Element {
   const [active, setActive] = useState<PageId>('fluxo')
 
   return (
-    <div className="flex h-full gap-6">
-      {/* Content */}
-      <div className="flex-1 overflow-auto">
-        {pageComponents[active]}
-      </div>
+    <div className="flex gap-6">
+        {/* Content */}
+        <div className="flex-1">
+          {pageComponents[active]}
+        </div>
 
-      {/* Picker */}
-      <div className="w-52 shrink-0 space-y-1">
-        <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Guias
-        </p>
-        {pages.map((page) => (
-          <button
-            key={page.id}
-            onClick={() => setActive(page.id)}
-            className={cn(
-              'w-full rounded-lg px-3 py-2.5 text-left transition-colors',
-              active === page.id
-                ? 'bg-primary text-primary-foreground'
-                : 'hover:bg-accent hover:text-accent-foreground'
-            )}
-          >
-            <div className="flex items-center gap-2">
-              {page.icon}
-              <span className="text-sm font-medium">{page.label}</span>
-            </div>
-            <p className={cn(
-              'mt-0.5 text-xs',
-              active === page.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
-            )}>
-              {page.sub}
-            </p>
-          </button>
-        ))}
-      </div>
+        {/* Picker */}
+        <div className="w-52 shrink-0 space-y-1">
+          <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Guias
+          </p>
+          {pages.map((page) => (
+            <button
+              key={page.id}
+              onClick={() => setActive(page.id)}
+              className={cn(
+                'w-full rounded-lg px-3 py-2.5 text-left transition-colors',
+                active === page.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <div className="flex items-center gap-2">
+                {page.icon}
+                <span className="text-sm font-medium">{page.label}</span>
+              </div>
+              <p className={cn(
+                'mt-0.5 text-xs',
+                active === page.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+              )}>
+                {page.sub}
+              </p>
+            </button>
+          ))}
+        </div>
     </div>
   )
 }
