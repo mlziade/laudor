@@ -240,7 +240,7 @@ export default function TemplateFillPage(): React.JSX.Element {
               </p>
             </div>
             <div className="space-y-2">
-              <Label>Perfil</Label>
+              <Label>Perfil (Persona)</Label>
               <Select value={selectedPerfilId} onValueChange={setSelectedPerfilId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecionar perfil..." />

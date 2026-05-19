@@ -8,7 +8,7 @@ const routeLabels: Record<string, string> = {
   '/console/templates': 'Templates',
   '/console/templates/new': 'Novo Template',
   '/console/projects': 'Projetos',
-  '/console/perfis': 'Perfis',
+  '/console/perfis': 'Perfis (Personas)',
   '/console/companies': 'Empresas',
   '/console/admin/users': 'Usuários'
 }

@@ -23,8 +23,8 @@ function PageFluxo(): React.JSX.Element {
           },
           {
             step: '2',
-            title: 'Cadastre Perfis e Empresas (opcional)',
-            desc: 'Dados salvos em Perfis e Empresas preenchem automaticamente campos vinculados nos templates. Isso evita digitar as mesmas informações repetidamente em cada documento.'
+            title: 'Cadastre Perfis (Personas) e Empresas (opcional)',
+            desc: 'Dados salvos em Perfis (Personas) e Empresas preenchem automaticamente campos vinculados nos templates. Isso evita digitar as mesmas informações repetidamente em cada documento.'
           },
           {
             step: '3',
@@ -73,13 +73,13 @@ function PageMenus(): React.JSX.Element {
     },
     {
       icon: <User size={18} />,
-      label: 'Perfis',
+      label: 'Perfis (Personas)',
       desc: 'Cadastro de pessoas físicas. Os dados (nome, CPF, endereço etc.) podem ser vinculados a campos de template para preenchimento automático, evitando redigitação.'
     },
     {
       icon: <Building2 size={18} />,
       label: 'Empresas',
-      desc: 'Cadastro de pessoas jurídicas. Funciona da mesma forma que Perfis, mas para dados de empresas como razão social, CNPJ e endereço.'
+      desc: 'Cadastro de pessoas jurídicas. Funciona da mesma forma que Perfis (Personas), mas para dados de empresas como razão social, CNPJ e endereço.'
     },
     {
       icon: <BookOpen size={18} />,
