@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FileText, Pencil, Trash2, Eye, X, Loader2 } from 'lucide-react'
+import { Plus, FileText, Pencil, Trash2, Eye, X, Loader2, Archive } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { templatesApi } from '../../lib/api'
 import { cn, formatDate } from '../../lib/utils'
@@ -61,6 +61,12 @@ export default function TemplatesPage(): React.JSX.Element {
     setSelectedId(null)
     setPreviewPdf(null)
     setLoadingPreview(false)
+  }
+
+  async function handleArchive(id: string): Promise<void> {
+    if (!user) return
+    await templatesApi.setStatus(user.id, id, 'ARCHIVED')
+    setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'ARCHIVED' } : t)))
   }
 
   async function handleDelete(id: string): Promise<void> {
@@ -153,6 +159,20 @@ export default function TemplatesPage(): React.JSX.Element {
                       >
                         <Pencil size={12} />
                       </Button>
+                      {template.status !== 'ARCHIVED' && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title="Arquivar"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleArchive(template.id)
+                          }}
+                        >
+                          <Archive size={12} />
+                        </Button>
+                      )}
                       <Button
                         size="icon"
                         variant="ghost"
@@ -267,6 +287,17 @@ export default function TemplatesPage(): React.JSX.Element {
                     >
                       <Pencil size={13} />
                     </Button>
+                    {template.status !== 'ARCHIVED' && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        title="Arquivar"
+                        onClick={() => handleArchive(template.id)}
+                      >
+                        <Archive size={13} />
+                      </Button>
+                    )}
                     <Button
                       size="icon"
                       variant="ghost"
