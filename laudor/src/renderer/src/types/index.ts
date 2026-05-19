@@ -1,11 +1,13 @@
 export type FieldType = 'text' | 'number' | 'date' | 'dropdown' | 'textarea' | 'email'
 
 export type DefaultFromSource =
-  | 'perfil.fullName'
+  | 'perfil.firstName'
+  | 'perfil.lastName'
   | 'perfil.cpf'
   | 'perfil.rg'
   | 'perfil.email'
   | 'perfil.phone'
+  | 'perfil.cellphone'
   | 'perfil.logradouro'
   | 'perfil.cidade'
   | 'perfil.estado'
@@ -44,17 +46,25 @@ export interface UserDTO {
   updatedAt: string
 }
 
+export interface PerfilCustomField {
+  key: string
+  label: string
+  value: string
+}
+
 export interface PerfilDTO {
   id: string
   userId: string
   name: string
   description?: string | null
   tags: string[]
-  fullName?: string | null
+  firstName?: string | null
+  lastName?: string | null
   cpf?: string | null
   rg?: string | null
   email?: string | null
   phone?: string | null
+  cellphone?: string | null
   cep?: string | null
   logradouro?: string | null
   numero?: string | null
@@ -63,6 +73,7 @@ export interface PerfilDTO {
   cidade?: string | null
   estado?: string | null
   picture?: string | null
+  customFields: PerfilCustomField[]
   createdAt: string
   updatedAt: string
 }
@@ -129,11 +140,13 @@ export interface CreatePerfilInput {
   name: string
   description?: string
   tags?: string[]
-  fullName?: string
+  firstName?: string
+  lastName?: string
   cpf?: string
   rg?: string
   email?: string
   phone?: string
+  cellphone?: string
   cep?: string
   logradouro?: string
   numero?: string
@@ -142,6 +155,7 @@ export interface CreatePerfilInput {
   cidade?: string
   estado?: string
   picture?: string
+  customFields?: PerfilCustomField[]
 }
 
 export interface CreateCompanyInput {

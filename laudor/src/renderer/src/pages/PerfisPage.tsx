@@ -59,8 +59,10 @@ export default function PerfisPage(): React.JSX.Element {
               <CardContent className="flex items-center justify-between p-4">
                 <div onClick={() => navigate(`/console/perfis/${perfil.id}`)}>
                   <p className="font-medium">{perfil.name}</p>
-                  {perfil.fullName && (
-                    <p className="text-sm text-muted-foreground">{perfil.fullName}</p>
+                  {(perfil.firstName || perfil.lastName) && (
+                    <p className="text-sm text-muted-foreground">
+                      {[perfil.firstName, perfil.lastName].filter(Boolean).join(' ')}
+                    </p>
                   )}
                   <p className="text-xs text-muted-foreground">
                     Criado em {formatDate(perfil.createdAt)}

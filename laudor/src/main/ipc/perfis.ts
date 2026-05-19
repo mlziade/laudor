@@ -4,15 +4,23 @@ import type { Prisma } from '@prisma/client'
 
 type PerfilRecord = Prisma.PerfilGetPayload<Record<string, never>>
 
+interface PerfilCustomField {
+  key: string
+  label: string
+  value: string
+}
+
 interface PerfilInput {
   name: string
   description?: string
   tags?: string[]
-  fullName?: string
+  firstName?: string
+  lastName?: string
   cpf?: string
   rg?: string
   email?: string
   phone?: string
+  cellphone?: string
   cep?: string
   logradouro?: string
   numero?: string
@@ -21,12 +29,14 @@ interface PerfilInput {
   cidade?: string
   estado?: string
   picture?: string
+  customFields?: PerfilCustomField[]
 }
 
 function toDTO(p: PerfilRecord): object {
   return {
     ...p,
     tags: JSON.parse(p.tags) as string[],
+    customFields: JSON.parse(p.customFields) as PerfilCustomField[],
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString()
   }
@@ -44,12 +54,13 @@ export function registerPerfisHandlers(): void {
 
   ipcMain.handle('perfis:create', async (_, userId: string, data: PerfilInput) => {
     const db = getDb()
-    const { tags, ...rest } = data
+    const { tags, customFields, ...rest } = data
     const perfil = await db.perfil.create({
       data: {
         ...rest,
         userId,
-        tags: JSON.stringify(tags ?? [])
+        tags: JSON.stringify(tags ?? []),
+        customFields: JSON.stringify(customFields ?? [])
       }
     })
     return toDTO(perfil)
@@ -62,12 +73,13 @@ export function registerPerfisHandlers(): void {
       const existing = await db.perfil.findUnique({ where: { id } })
       if (!existing || existing.userId !== userId) throw new Error('Perfil não encontrado')
 
-      const { tags, ...rest } = data
+      const { tags, customFields, ...rest } = data
       const perfil = await db.perfil.update({
         where: { id },
         data: {
           ...rest,
-          ...(tags !== undefined && { tags: JSON.stringify(tags) })
+          ...(tags !== undefined && { tags: JSON.stringify(tags) }),
+          ...(customFields !== undefined && { customFields: JSON.stringify(customFields) })
         }
       })
       return toDTO(perfil)

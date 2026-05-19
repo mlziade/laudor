@@ -50,3 +50,13 @@ export function validatePhone(value: string): boolean {
   if (digits.length === 11) return /^\d{2}9\d{8}$/.test(digits)
   return false
 }
+
+export function validateLandline(value: string): boolean {
+  const digits = value.replace(/\D/g, '')
+  return digits.length === 10 && /^\d{2}[2-9]\d{7}$/.test(digits)
+}
+
+export function validateCellphone(value: string): boolean {
+  const digits = value.replace(/\D/g, '')
+  return digits.length === 11 && /^\d{2}9\d{8}$/.test(digits)
+}

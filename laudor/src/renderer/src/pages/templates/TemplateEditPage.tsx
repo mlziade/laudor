@@ -28,11 +28,13 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
 ]
 
 const DEFAULT_FROM_OPTIONS: { value: DefaultFromSource; label: string }[] = [
-  { value: 'perfil.fullName', label: 'Perfil: Nome Completo' },
+  { value: 'perfil.firstName', label: 'Perfil: Primeiro Nome' },
+  { value: 'perfil.lastName', label: 'Perfil: Sobrenome' },
   { value: 'perfil.cpf', label: 'Perfil: CPF' },
   { value: 'perfil.rg', label: 'Perfil: RG' },
   { value: 'perfil.email', label: 'Perfil: Email' },
-  { value: 'perfil.phone', label: 'Perfil: Telefone' },
+  { value: 'perfil.phone', label: 'Perfil: Telefone Fixo' },
+  { value: 'perfil.cellphone', label: 'Perfil: Celular' },
   { value: 'perfil.logradouro', label: 'Perfil: Logradouro' },
   { value: 'perfil.cidade', label: 'Perfil: Cidade' },
   { value: 'perfil.estado', label: 'Perfil: Estado' },

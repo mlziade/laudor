@@ -28,11 +28,14 @@ model Perfil {
   name        String
   description String?
   tags        String    @default("[]")
-  fullName    String?
+  firstName   String?
+  lastName    String?
   cpf         String?
   rg          String?
   email       String?
   phone       String?
+  cellphone   String?
+  customFields String  @default("[]")
   cep         String?
   logradouro  String?
   numero      String?

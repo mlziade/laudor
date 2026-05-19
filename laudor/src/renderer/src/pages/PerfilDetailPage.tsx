@@ -3,12 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ArrowLeft, Camera } from 'lucide-react'
+import { ArrowLeft, Camera, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { perfisApi } from '../lib/api'
 import { maskCPF, maskCEP, maskPhone } from '../lib/masks'
-import { validateCPF, validatePhone } from '../lib/validators'
-import type { CreatePerfilInput } from '../types'
+import { validateCPF, validateLandline, validateCellphone } from '../lib/validators'
+import type { CreatePerfilInput, PerfilCustomField } from '../types'
 import { ESTADOS_BR } from '../data/estados'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -29,17 +29,28 @@ import { Avatar } from '../components/ui/avatar'
 const schema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   description: z.string().optional(),
-  fullName: z.string().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
   cpf: z
     .string()
     .optional()
     .refine((v) => !v || validateCPF(v), 'CPF inválido'),
   rg: z.string().optional(),
-  email: z.string().email('Email inválido').optional().or(z.literal('')),
+  email: z
+    .string()
+    .optional()
+    .refine(
+      (v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+      'Email inválido'
+    ),
   phone: z
     .string()
     .optional()
-    .refine((v) => !v || validatePhone(v), 'Telefone inválido'),
+    .refine((v) => !v || validateLandline(v), 'Telefone fixo inválido'),
+  cellphone: z
+    .string()
+    .optional()
+    .refine((v) => !v || validateCellphone(v), 'Celular inválido'),
   cep: z.string().optional(),
   logradouro: z.string().optional(),
   numero: z.string().optional(),
@@ -50,6 +61,15 @@ const schema = z.object({
 })
 
 type FormData = z.infer<typeof schema>
+
+function slugify(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
 
 async function resizeToBase64(file: File, maxSize = 512): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -79,9 +99,11 @@ export default function PerfilDetailPage(): React.JSX.Element {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [picture, setPicture] = useState<string | null>(null)
+  const [customFields, setCustomFields] = useState<PerfilCustomField[]>([])
 
   const [cpfMasked, setCpfMasked] = useState('')
   const [phoneMasked, setPhoneMasked] = useState('')
+  const [cellphoneMasked, setCellphoneMasked] = useState('')
   const [cepMasked, setCepMasked] = useState('')
 
   const {
@@ -100,10 +122,29 @@ export default function PerfilDetailPage(): React.JSX.Element {
     perfisApi.list(user.id).then((perfis) => {
       const perfil = perfis.find((p) => p.id === id)
       if (!perfil) return
-      reset(perfil as FormData)
+      reset({
+        name: perfil.name,
+        description: perfil.description ?? undefined,
+        firstName: perfil.firstName ?? undefined,
+        lastName: perfil.lastName ?? undefined,
+        cpf: perfil.cpf ?? undefined,
+        rg: perfil.rg ?? undefined,
+        email: perfil.email ?? undefined,
+        phone: perfil.phone ?? undefined,
+        cellphone: perfil.cellphone ?? undefined,
+        cep: perfil.cep ?? undefined,
+        logradouro: perfil.logradouro ?? undefined,
+        numero: perfil.numero ?? undefined,
+        complemento: perfil.complemento ?? undefined,
+        bairro: perfil.bairro ?? undefined,
+        cidade: perfil.cidade ?? undefined,
+        estado: perfil.estado ?? undefined
+      })
       setPicture(perfil.picture ?? null)
+      setCustomFields(perfil.customFields ?? [])
       setCpfMasked(maskCPF(perfil.cpf ?? ''))
       setPhoneMasked(maskPhone(perfil.phone ?? ''))
+      setCellphoneMasked(maskPhone(perfil.cellphone ?? ''))
       setCepMasked(maskCEP(perfil.cep ?? ''))
     })
   }, [id, isNew, user, reset])
@@ -119,6 +160,27 @@ export default function PerfilDetailPage(): React.JSX.Element {
     }
   }
 
+  function addCustomField(): void {
+    setCustomFields((prev) => [...prev, { key: '', label: '', value: '' }])
+  }
+
+  function updateCustomField(index: number, patch: Partial<PerfilCustomField>): void {
+    setCustomFields((prev) =>
+      prev.map((f, i) => {
+        if (i !== index) return f
+        const updated = { ...f, ...patch }
+        if (patch.label !== undefined) {
+          updated.key = slugify(patch.label)
+        }
+        return updated
+      })
+    )
+  }
+
+  function removeCustomField(index: number): void {
+    setCustomFields((prev) => prev.filter((_, i) => i !== index))
+  }
+
   async function onSubmit(data: FormData): Promise<void> {
     if (!user) return
     setError(null)
@@ -127,7 +189,8 @@ export default function PerfilDetailPage(): React.JSX.Element {
       const payload: CreatePerfilInput & { picture?: string } = {
         ...data,
         email: data.email || undefined,
-        picture: picture ?? undefined
+        picture: picture ?? undefined,
+        customFields: customFields.filter((f) => f.label.trim())
       }
       if (isNew) {
         await perfisApi.create(user.id, payload)
@@ -198,9 +261,13 @@ export default function PerfilDetailPage(): React.JSX.Element {
                   <Label htmlFor="description">Descrição</Label>
                   <Textarea id="description" {...register('description')} rows={4} />
                 </div>
-                <div className="space-y-2 col-span-2">
-                  <Label htmlFor="fullName">Nome completo</Label>
-                  <Input id="fullName" {...register('fullName')} />
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">Primeiro nome</Label>
+                  <Input id="firstName" {...register('firstName')} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Sobrenome</Label>
+                  <Input id="lastName" {...register('lastName')} />
                 </div>
               </div>
             </div>
@@ -228,12 +295,19 @@ export default function PerfilDetailPage(): React.JSX.Element {
                 <Input id="rg" {...register('rg')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" {...register('email')} />
+                {errors.email && (
+                  <p className="text-xs text-destructive">{errors.email.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone fixo</Label>
                 <MaskedInput
                   id="phone"
                   mask={maskPhone}
                   value={phoneMasked}
-                  placeholder="(00) 00000-0000"
+                  placeholder="(00) 0000-0000"
                   onChange={(masked, raw) => {
                     setPhoneMasked(masked)
                     setValue('phone', raw, { shouldValidate: true })
@@ -243,11 +317,20 @@ export default function PerfilDetailPage(): React.JSX.Element {
                   <p className="text-xs text-destructive">{errors.phone.message}</p>
                 )}
               </div>
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...register('email')} />
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email.message}</p>
+              <div className="space-y-2">
+                <Label htmlFor="cellphone">Celular</Label>
+                <MaskedInput
+                  id="cellphone"
+                  mask={maskPhone}
+                  value={cellphoneMasked}
+                  placeholder="(00) 90000-0000"
+                  onChange={(masked, raw) => {
+                    setCellphoneMasked(masked)
+                    setValue('cellphone', raw, { shouldValidate: true })
+                  }}
+                />
+                {errors.cellphone && (
+                  <p className="text-xs text-destructive">{errors.cellphone.message}</p>
                 )}
               </div>
             </div>
@@ -305,6 +388,52 @@ export default function PerfilDetailPage(): React.JSX.Element {
                 </Select>
               </div>
             </div>
+
+            <Separator />
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-muted-foreground">Campos Personalizados</p>
+              <Button type="button" size="sm" variant="outline" onClick={addCustomField}>
+                <Plus size={14} />
+                Adicionar campo
+              </Button>
+            </div>
+
+            {customFields.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhum campo personalizado.</p>
+            ) : (
+              <div className="space-y-3">
+                {customFields.map((field, index) => (
+                  <div key={index} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Rótulo</Label>
+                      <Input
+                        value={field.label}
+                        onChange={(e) => updateCustomField(index, { label: e.target.value })}
+                        placeholder="Ex: OAB, CRM..."
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Valor</Label>
+                      <Input
+                        value={field.value}
+                        onChange={(e) => updateCustomField(index, { value: e.target.value })}
+                        className="h-8"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => removeCustomField(index)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {error && <p className="text-xs text-destructive">{error}</p>}
 
