@@ -30,7 +30,7 @@ const navItems: NavItem[] = [
   { label: 'Perfis', to: '/console/perfis', icon: <User size={18} /> },
   { label: 'Empresas', to: '/console/companies', icon: <Building2 size={18} /> },
   { label: 'Usuários', to: '/console/admin/users', icon: <Users size={18} />, adminOnly: true },
-  { label: 'Docs', to: '/console/docs', icon: <BookOpen size={18} /> }
+  { label: 'Docs (Tutorial)', to: '/console/docs', icon: <BookOpen size={18} /> }
 ]
 
 interface SidebarProps {
