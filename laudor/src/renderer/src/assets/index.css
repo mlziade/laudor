@@ -133,3 +133,28 @@
 .font-brand {
   font-family: 'SitkaSmall', serif;
 }
+
+.doc-preview {
+  /* font-family, font-size, max-width are set per-document via injected <style> */
+  font-family: 'Times New Roman', serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #000;
+  max-width: 680px;
+  margin: 0 auto;
+}
+.doc-preview p {
+  margin-bottom: 0.75rem;
+}
+.doc-preview h1 { font-size: 1.5rem; font-weight: bold; text-align: center; margin: 1.25rem 0 0.75rem; }
+.doc-preview h2 { font-size: 1.25rem; font-weight: bold; text-align: center; margin: 1rem 0 0.5rem; }
+.doc-preview h3 { font-size: 1.1rem; font-weight: bold; margin: 0.875rem 0 0.4rem; }
+.doc-preview ul { list-style-type: disc; padding-left: 2rem; margin-bottom: 0.75rem; }
+.doc-preview ol { list-style-type: decimal; padding-left: 2rem; margin-bottom: 0.75rem; }
+.doc-preview li { margin-bottom: 0.25rem; text-align: justify; }
+.doc-preview strong, .doc-preview b { font-weight: bold; }
+.doc-preview em, .doc-preview i { font-style: italic; }
+.doc-preview u { text-decoration: underline; }
+.doc-preview table { border-collapse: collapse; width: 100%; margin-bottom: 0.75rem; }
+.doc-preview td, .doc-preview th { border: 1px solid #d1d5db; padding: 0.3rem 0.5rem; font-size: 11pt; }
+.doc-preview th { background-color: #f3f4f6; font-weight: bold; text-align: center; }

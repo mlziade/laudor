@@ -385,9 +385,9 @@ export default function TemplateFillPage(): React.JSX.Element {
 
           {/* Tab content */}
           {previewTab === 'text' ? (
-            <div className="flex-1 overflow-auto bg-white p-6 text-black">
+            <div className="flex-1 overflow-auto bg-white p-8 text-black">
               <div
-                className="prose max-w-none text-sm"
+                className="doc-preview max-w-none"
                 dangerouslySetInnerHTML={{ __html: liveHtml() }}
               />
             </div>

@@ -31,6 +31,208 @@ interface UpdateTemplateInput {
   isPublic?: boolean
 }
 
+// ── Word XML → styled HTML ────────────────────────────────────────────────────
+
+function twipsToPx(twips: number): number {
+  return Math.round(twips * 96 / 1440)
+}
+
+function halfPtToPx(halfPt: number): number {
+  return Math.round((halfPt / 2) * (96 / 72))
+}
+
+interface StyleProps {
+  align?: string
+  firstLine?: number
+  left?: number
+  right?: number
+  spaceBefore?: number
+  spaceAfter?: number
+  lineSpacing?: number
+  lineSpacingRule?: string
+  fontSize?: number
+  fontName?: string
+}
+
+interface StyleEntry extends StyleProps {
+  basedOn?: string
+}
+
+function parsePPr(pPrXml: string): StyleProps {
+  const s: StyleProps = {}
+  const jc = /<w:jc[^>]*w:val="([^"]+)"/.exec(pPrXml)
+  if (jc) s.align = jc[1]
+  const indAttrs = (/<w:ind\s([^/]*)\/?>/.exec(pPrXml))?.[1] ?? ''
+  if (indAttrs) {
+    const fl = /w:firstLine="(\d+)"/.exec(indAttrs)
+    const lft = /w:left="(\d+)"/.exec(indAttrs)
+    const rgt = /w:right="(\d+)"/.exec(indAttrs)
+    if (fl) s.firstLine = parseInt(fl[1])
+    if (lft) s.left = parseInt(lft[1])
+    if (rgt) s.right = parseInt(rgt[1])
+  }
+  const spcAttrs = (/<w:spacing\s([^/]*)\/?>/.exec(pPrXml))?.[1] ?? ''
+  if (spcAttrs) {
+    const before = /w:before="(\d+)"/.exec(spcAttrs)
+    const after = /w:after="(\d+)"/.exec(spcAttrs)
+    const line = /w:line="(\d+)"/.exec(spcAttrs)
+    const rule = /w:lineRule="([^"]+)"/.exec(spcAttrs)
+    if (before) s.spaceBefore = parseInt(before[1])
+    if (after) s.spaceAfter = parseInt(after[1])
+    if (line) s.lineSpacing = parseInt(line[1])
+    if (rule) s.lineSpacingRule = rule[1]
+  }
+  return s
+}
+
+function parseRPr(rPrXml: string): Pick<StyleProps, 'fontSize' | 'fontName'> {
+  const s: Pick<StyleProps, 'fontSize' | 'fontName'> = {}
+  const sz = /<w:sz\s[^>]*w:val="(\d+)"/.exec(rPrXml)
+  if (sz) s.fontSize = parseInt(sz[1])
+  const font = /<w:rFonts[^>]*w:ascii="([^"]+)"/.exec(rPrXml)
+  if (font) s.fontName = font[1]
+  return s
+}
+
+function mergeStyles(base: StyleProps, override: StyleProps): StyleProps {
+  const r: StyleProps = { ...base }
+  for (const k of Object.keys(override) as (keyof StyleProps)[]) {
+    if (override[k] !== undefined) (r as Record<string, unknown>)[k] = override[k]
+  }
+  return r
+}
+
+function parseStylesXml(stylesXml: string): { styleMap: Map<string, StyleEntry>; docDefault: StyleProps } {
+  const styleMap = new Map<string, StyleEntry>()
+  const docDefault: StyleProps = {}
+
+  const docDefaultsXml = (/<w:docDefaults>([\s\S]*?)<\/w:docDefaults>/.exec(stylesXml))?.[1] ?? ''
+  const pPrDefaultXml = (/<w:pPrDefault>([\s\S]*?)<\/w:pPrDefault>/.exec(docDefaultsXml))?.[1] ?? ''
+  const pPrInDefault = (/<w:pPr>([\s\S]*?)<\/w:pPr>/.exec(pPrDefaultXml))?.[1]
+  if (pPrInDefault) Object.assign(docDefault, parsePPr(pPrInDefault))
+  const rPrDefaultXml = (/<w:rPrDefault>([\s\S]*?)<\/w:rPrDefault>/.exec(docDefaultsXml))?.[1] ?? ''
+  const rPrInDefault = (/<w:rPr>([\s\S]*?)<\/w:rPr>/.exec(rPrDefaultXml))?.[1]
+  if (rPrInDefault) Object.assign(docDefault, parseRPr(rPrInDefault))
+
+  for (const m of stylesXml.matchAll(/<w:style\s[^>]*w:type="paragraph"[^>]*>([\s\S]*?)<\/w:style>/g)) {
+    const block = m[0]
+    const id = /w:styleId="([^"]+)"/.exec(block)?.[1]
+    if (!id) continue
+    const entry: StyleEntry = {}
+    const basedOn = /<w:basedOn\s[^>]*w:val="([^"]+)"/.exec(block)?.[1]
+    if (basedOn) entry.basedOn = basedOn
+    const pPr = (/<w:pPr>([\s\S]*?)<\/w:pPr>/.exec(block))?.[1]
+    if (pPr) Object.assign(entry, parsePPr(pPr))
+    const rPr = (/<w:rPr>([\s\S]*?)<\/w:rPr>/.exec(block))?.[1]
+    if (rPr) Object.assign(entry, parseRPr(rPr))
+    styleMap.set(id, entry)
+  }
+
+  return { styleMap, docDefault }
+}
+
+function resolveStyle(
+  styleId: string | undefined,
+  styleMap: Map<string, StyleEntry>,
+  docDefault: StyleProps,
+  visited = new Set<string>()
+): StyleProps {
+  if (!styleId || visited.has(styleId)) return { ...docDefault }
+  visited.add(styleId)
+  const { basedOn, ...ownProps } = styleMap.get(styleId) ?? {}
+  const base = resolveStyle(basedOn, styleMap, docDefault, visited)
+  return mergeStyles(base, ownProps)
+}
+
+function extractParaInfos(documentXml: string): { styleId?: string; paraProps: StyleProps }[] {
+  const infos: { styleId?: string; paraProps: StyleProps }[] = []
+  const bodyXml = documentXml.replace(/<w:tbl\b[\s\S]*?<\/w:tbl>/g, '')
+  for (const m of bodyXml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)) {
+    // Mammoth drops paragraphs with no text nodes — skip to keep the counter in sync
+    if (!/<w:t[\s>]/.test(m[0])) continue
+    const pPrXml = (/<w:pPr>([\s\S]*?)<\/w:pPr>/.exec(m[0]))?.[1] ?? ''
+    const styleId = /<w:pStyle\s[^>]*w:val="([^"]+)"/.exec(pPrXml)?.[1]
+    const paraProps: StyleProps = pPrXml ? parsePPr(pPrXml) : {}
+    const rPrInPPr = (/<w:rPr>([\s\S]*?)<\/w:rPr>/.exec(pPrXml))?.[1]
+    if (rPrInPPr) Object.assign(paraProps, parseRPr(rPrInPPr))
+    infos.push({ styleId, paraProps })
+  }
+  return infos
+}
+
+function parsePageContentWidth(documentXml: string): number {
+  const sectPr = (/<w:sectPr\b[\s\S]*?<\/w:sectPr>/.exec(documentXml))?.[0] ?? ''
+  const pgSzAttrs = (/<w:pgSz\s([^/]*)\/?>/.exec(sectPr))?.[1] ?? ''
+  const pgMarAttrs = (/<w:pgMar\s([^/]*)\/?>/.exec(sectPr))?.[1] ?? ''
+  const w = /w:w="(\d+)"/.exec(pgSzAttrs)?.[1]
+  const l = /w:left="(\d+)"/.exec(pgMarAttrs)?.[1]
+  const r = /w:right="(\d+)"/.exec(pgMarAttrs)?.[1]
+  if (!w || !l || !r) return 680
+  return twipsToPx(parseInt(w) - parseInt(l) - parseInt(r))
+}
+
+function stylePropsToCSS(s: StyleProps): string {
+  const css: string[] = []
+  if (s.align === 'both') css.push('text-align:justify')
+  else if (s.align === 'center') css.push('text-align:center')
+  else if (s.align === 'right') css.push('text-align:right')
+  else if (s.align === 'left') css.push('text-align:left')
+  if (s.firstLine && s.firstLine > 0) css.push(`text-indent:${twipsToPx(s.firstLine)}px`)
+  if (s.left && s.left > 0) css.push(`padding-left:${twipsToPx(s.left)}px`)
+  if (s.right && s.right > 0) css.push(`padding-right:${twipsToPx(s.right)}px`)
+  if (s.spaceBefore !== undefined) css.push(`margin-top:${twipsToPx(s.spaceBefore)}px`)
+  if (s.spaceAfter !== undefined) css.push(`margin-bottom:${twipsToPx(s.spaceAfter)}px`)
+  if (s.lineSpacing !== undefined) {
+    css.push(
+      !s.lineSpacingRule || s.lineSpacingRule === 'auto'
+        ? `line-height:${(s.lineSpacing / 240).toFixed(2)}`
+        : `line-height:${twipsToPx(s.lineSpacing)}px`
+    )
+  }
+  if (s.fontSize) css.push(`font-size:${halfPtToPx(s.fontSize)}px`)
+  if (s.fontName) css.push(`font-family:'${s.fontName}',serif`)
+  return css.join(';')
+}
+
+async function convertDocxToStyledHtml(buf: Buffer): Promise<string> {
+  const { value: bodyHtml } = await mammoth.convertToHtml({ buffer: buf })
+  try {
+    const zip = new PizZip(buf)
+    const documentXml = zip.file('word/document.xml')?.asText()
+    const stylesXml = zip.file('word/styles.xml')?.asText()
+    if (!documentXml) return bodyHtml
+
+    const { styleMap, docDefault } = stylesXml
+      ? parseStylesXml(stylesXml)
+      : { styleMap: new Map<string, StyleEntry>(), docDefault: {} }
+
+    const contentWidthPx = parsePageContentWidth(documentXml)
+    const paraInfos = extractParaInfos(documentXml)
+
+    const fontName = docDefault.fontName ?? 'Times New Roman'
+    const fontSize = docDefault.fontSize ? halfPtToPx(docDefault.fontSize) : 16
+    const docStyle = `<style>.doc-preview{font-family:'${fontName}',serif;font-size:${fontSize}px;max-width:${contentWidthPx}px}</style>`
+
+    let paraIdx = 0
+    let tableDepth = 0
+    const styledHtml = bodyHtml.replace(/<\/?table\b[^>]*>|<p(?:\s[^>]*)?>/g, (match) => {
+      if (match.startsWith('</table')) { tableDepth--; return match }
+      if (match.startsWith('<table')) { tableDepth++; return match }
+      if (tableDepth > 0 || paraIdx >= paraInfos.length) return match
+      const { styleId, paraProps } = paraInfos[paraIdx++]
+      const resolved = resolveStyle(styleId, styleMap, docDefault)
+      const cssStr = stylePropsToCSS(mergeStyles(resolved, paraProps))
+      if (!cssStr) return match
+      if (match.includes('style="')) return match.replace(/style="([^"]*)"/, `style="$1;${cssStr}"`)
+      return `<p style="${cssStr}">`
+    })
+
+    return docStyle + styledHtml
+  } catch {
+    return bodyHtml
+  }
+}
+
 function toDTO(t: TemplateRecord, includeContent = false): object {
   const base = {
     id: t.id,
@@ -175,8 +377,7 @@ export function registerTemplatesHandlers(): void {
 
   ipcMain.handle('templates:previewHtmlFromBuffer', async (_, fileBuffer: Buffer | Uint8Array) => {
     const buf = Buffer.isBuffer(fileBuffer) ? fileBuffer : Buffer.from(fileBuffer)
-    const result = await mammoth.convertToHtml({ buffer: buf })
-    return result.value
+    return convertDocxToStyledHtml(buf)
   })
 
   ipcMain.handle('templates:toPdfFromBuffer', async (_, fileBuffer: Buffer | Uint8Array) => {
@@ -329,7 +530,6 @@ export function registerTemplatesHandlers(): void {
     if (!template) throw new Error('Template não encontrado')
     if (!canAccess(template, userId)) throw new Error('Acesso negado')
 
-    const result = await mammoth.convertToHtml({ buffer: template.fileContent })
-    return result.value
+    return convertDocxToStyledHtml(template.fileContent)
   })
 }
