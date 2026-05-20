@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FileText, Pencil, Trash2, Eye, X, Loader2, Archive, Search } from 'lucide-react'
+import { Plus, FileText, Pencil, Trash2, Eye, X, Loader2, Archive, Search, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { templatesApi } from '../../lib/api'
 import { cn, formatDate } from '../../lib/utils'
@@ -9,6 +9,14 @@ import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '../../components/ui/dialog'
 import { PdfPreview } from '../../components/ui/pdf-preview'
 import { PreviewSkeleton } from './PreviewSkeleton'
 
@@ -35,6 +43,7 @@ export default function TemplatesPage(): React.JSX.Element {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [previewPdf, setPreviewPdf] = useState<Uint8Array | null>(null)
   const [loadingPreview, setLoadingPreview] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -71,9 +80,15 @@ export default function TemplatesPage(): React.JSX.Element {
     setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'ARCHIVED' } : t)))
   }
 
-  async function handleDelete(id: string): Promise<void> {
-    if (!user) return
-    if (!confirm('Confirma a exclusão deste template?')) return
+  function handleDelete(id: string): void {
+    const template = templates.find((t) => t.id === id)
+    setDeleteTarget({ id, name: template?.name ?? 'este template' })
+  }
+
+  async function confirmDelete(): Promise<void> {
+    if (!user || !deleteTarget) return
+    const { id } = deleteTarget
+    setDeleteTarget(null)
     await templatesApi.delete(user.id, id)
     setTemplates((prev) => prev.filter((t) => t.id !== id))
     if (selectedId === id) closePreview()
@@ -336,6 +351,33 @@ export default function TemplatesPage(): React.JSX.Element {
           ))}
         </div>
       )}
+
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle size={20} className="text-destructive" />
+              </div>
+              <DialogTitle>Excluir template</DialogTitle>
+            </div>
+            <DialogDescription className="pt-1">
+              Tem certeza que deseja excluir{' '}
+              <span className="font-medium text-foreground">"{deleteTarget?.name}"</span>?
+              <br /><br />
+              Todos os projetos gerados a partir deste template também serão excluídos permanentemente. Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

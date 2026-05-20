@@ -521,6 +521,7 @@ export function registerTemplatesHandlers(): void {
     const db = getDb()
     const existing = await db.template.findUnique({ where: { id } })
     if (!existing || existing.ownerId !== userId) throw new Error('Template não encontrado')
+    await db.project.deleteMany({ where: { templateId: id } })
     await db.template.delete({ where: { id } })
   })
 
