@@ -1,9 +1,9 @@
 # Dependencies
-laudor/node_modules/
+node_modules/
 
 # Build output
-laudor/out/
-laudor/dist/
+out/
+dist/
 
 # TypeScript build cache
 *.tsbuildinfo
