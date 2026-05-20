@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FolderOpen, Trash2, Search } from 'lucide-react'
+import { FolderOpen, Trash2, Search, Plus } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { projectsApi } from '../lib/api'
 import type { ProjectDTO, ProjectStatus } from '../types'
@@ -49,26 +49,32 @@ export default function ProjectsPage(): React.JSX.Element {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        {(['ALL', 'IN_PROGRESS', 'COMPLETED'] as const).map((s) => (
-          <Button
-            key={s}
-            size="sm"
-            variant={filter === s ? 'default' : 'outline'}
-            onClick={() => setFilter(s)}
-          >
-            {s === 'ALL' ? 'Todos' : s === 'IN_PROGRESS' ? 'Em andamento' : 'Concluídos'}
-          </Button>
-        ))}
-        <div className="relative ml-2">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar projetos..."
-            className="h-8 pl-8 text-sm w-56"
-          />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {(['ALL', 'IN_PROGRESS', 'COMPLETED'] as const).map((s) => (
+            <Button
+              key={s}
+              size="sm"
+              variant={filter === s ? 'default' : 'outline'}
+              onClick={() => setFilter(s)}
+            >
+              {s === 'ALL' ? 'Todos' : s === 'IN_PROGRESS' ? 'Em andamento' : 'Concluídos'}
+            </Button>
+          ))}
+          <div className="relative ml-2">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar projetos..."
+              className="h-8 pl-8 text-sm w-56"
+            />
+          </div>
         </div>
+        <Button onClick={() => navigate('/console/templates', { state: { fromNewProject: true } })}>
+          <Plus size={16} />
+          Novo Projeto
+        </Button>
       </div>
 
       {loading ? (

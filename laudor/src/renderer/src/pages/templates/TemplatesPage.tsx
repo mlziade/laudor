@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, FileText, Pencil, Trash2, Eye, X, Loader2, Archive, Search, AlertTriangle } from 'lucide-react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Plus, FileText, Pencil, Trash2, Eye, X, Loader2, Archive, Search, AlertTriangle, Info } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { templatesApi } from '../../lib/api'
 import { cn, formatDate } from '../../lib/utils'
@@ -36,9 +36,11 @@ const STATUS_VARIANTS: Record<TemplateStatus, 'default' | 'secondary' | 'outline
 export default function TemplatesPage(): React.JSX.Element {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { state } = useLocation()
+  const fromNewProject = (state as { fromNewProject?: boolean } | null)?.fromNewProject ?? false
   const [templates, setTemplates] = useState<TemplateDTO[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<TemplateStatus | 'ALL'>('ALL')
+  const [filter, setFilter] = useState<TemplateStatus | 'ALL'>(fromNewProject ? 'PUBLISHED' : 'ALL')
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [previewPdf, setPreviewPdf] = useState<Uint8Array | null>(null)
@@ -111,6 +113,12 @@ export default function TemplatesPage(): React.JSX.Element {
 
   return (
     <div className="space-y-4">
+      {fromNewProject && (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
+          <Info size={15} className="shrink-0" />
+          Clique em um template publicado abaixo para preencher e criar um novo projeto.
+        </div>
+      )}
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
