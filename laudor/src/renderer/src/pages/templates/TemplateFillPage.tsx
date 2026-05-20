@@ -133,15 +133,14 @@ export default function TemplateFillPage(): React.JSX.Element {
       .finally(() => setLoading(false))
   }, [id, user])
 
-  // Auto-fill from perfil/company when they change
+  // Auto-fill from perfil/company when they change; clear when deselected
   useEffect(() => {
     if (!template) return
     setValues((prev) => {
       const updated = { ...prev }
       for (const field of template.fields) {
         if (field.defaultFrom) {
-          const autoValue = getDefaultValue(field, selectedPerfil, selectedCompany)
-          if (autoValue) updated[field.key] = autoValue
+          updated[field.key] = getDefaultValue(field, selectedPerfil, selectedCompany)
         }
       }
       return updated
