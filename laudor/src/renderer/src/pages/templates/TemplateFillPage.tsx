@@ -98,8 +98,9 @@ export default function TemplateFillPage(): React.JSX.Element {
     for (const [key, val] of Object.entries(values)) {
       const color = fieldColors[key] ?? '#888888'
       const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      const replacement = val
-        ? `<span style="color:${color} !important;font-weight:500">${val}</span>`
+      const htmlVal = val.replace(/\n/g, '<br>')
+      const replacement = htmlVal
+        ? `<span style="color:${color} !important;font-weight:500">${htmlVal}</span>`
         : `<span style="background:${color}1a;color:${color};border:1px dashed ${color}80;border-radius:3px;padding:0 5px;font-size:0.85em;font-style:italic;white-space:nowrap">${labelMap[key] ?? key}</span>`
       html = html.replace(new RegExp(`\\{\\{${escaped}(?::[^}]*)?\\}\\}`, 'g'), replacement)
     }
