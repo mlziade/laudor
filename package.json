@@ -65,7 +65,11 @@
     "files": [
       "out/**/*",
       "prisma/schema.prisma",
-      "resources/**/*"
+      "resources/**/*",
+      "node_modules/.prisma/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/.prisma/**/*"
     ],
     "extraResources": [
       {
