@@ -81,6 +81,8 @@ export default function TemplateFillPage(): React.JSX.Element {
   const [projectName, setProjectName] = useState('')
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [savedProjectId, setSavedProjectId] = useState<string | null>(null)
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewTab, setPreviewTab] = useState<'text' | 'pdf'>('text')
@@ -174,21 +176,42 @@ export default function TemplateFillPage(): React.JSX.Element {
     setGenerating(true)
     setShowExportDialog(false)
     try {
-      const project = await projectsApi.create(user.id, {
+      const projectId = savedProjectId ?? (await projectsApi.create(user.id, {
+        name: projectName,
+        templateId: template.id,
+        perfilId: selectedPerfilId === '__none__' ? undefined : selectedPerfilId,
+        companyId: selectedCompanyId === '__none__' ? undefined : selectedCompanyId,
+        values
+      })).id
+      if (!savedProjectId) setSavedProjectId(projectId)
+      await projectsApi.generate(user.id, projectId, format)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro ao gerar documento')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function handleSave(): Promise<void> {
+    if (!user || !template) return
+    if (savedProjectId) {
+      navigate('/console/projects')
+      return
+    }
+    setSaving(true)
+    try {
+      await projectsApi.create(user.id, {
         name: projectName,
         templateId: template.id,
         perfilId: selectedPerfilId === '__none__' ? undefined : selectedPerfilId,
         companyId: selectedCompanyId === '__none__' ? undefined : selectedCompanyId,
         values
       })
-      const result = await projectsApi.generate(user.id, project.id, format)
-      if (result.filePath) {
-        navigate('/console/projects')
-      }
+      navigate('/console/projects')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro ao gerar documento')
+      setError(err instanceof Error ? err.message : 'Erro ao salvar projeto')
     } finally {
-      setGenerating(false)
+      setSaving(false)
     }
   }
 
@@ -222,10 +245,15 @@ export default function TemplateFillPage(): React.JSX.Element {
             </div>
           </div>
         </div>
-        <Button onClick={() => setShowExportDialog(true)} disabled={generating}>
-          <Download size={16} />
-          {generating ? 'Gerando...' : 'Gerar Documento'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setShowExportDialog(true)} disabled={generating || saving}>
+            <Download size={16} />
+            {generating ? 'Gerando...' : 'Gerar Documento'}
+          </Button>
+          <Button variant="outline" onClick={handleSave} disabled={generating || saving}>
+            {saving ? 'Salvando...' : 'Concluir'}
+          </Button>
+        </div>
       </div>
 
       {error && <p className="text-xs text-destructive mb-2">{error}</p>}
