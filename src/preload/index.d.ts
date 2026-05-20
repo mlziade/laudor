@@ -26,7 +26,7 @@ declare global {
       templates: {
         list: (userId: string, statusFilter?: string) => Promise<unknown[]>
         get: (userId: string, id: string) => Promise<unknown>
-        parseTags: (fileBuffer: Uint8Array) => Promise<string[]>
+        parseTags: (fileBuffer: Uint8Array) => Promise<{ key: string; description?: string }[]>
         previewHtmlFromBuffer: (fileBuffer: Uint8Array) => Promise<string>
         toPdfFromBuffer: (fileBuffer: Uint8Array) => Promise<Uint8Array>
         toPdf: (userId: string, id: string) => Promise<Uint8Array>
