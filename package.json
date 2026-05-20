@@ -51,6 +51,29 @@
     "tailwind-merge": "^2.5.5",
     "zod": "^3.23.8"
   },
+  "build": {
+    "appId": "com.laudor.app",
+    "productName": "Laudor",
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "files": [
+      "out/**/*",
+      "prisma/schema.prisma",
+      "resources/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "prisma",
+        "to": "prisma"
+      }
+    ]
+  },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^2.0.0",
     "@electron-toolkit/eslint-config-ts": "^2.0.0",
